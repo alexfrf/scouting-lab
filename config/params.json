@@ -1,0 +1,10 @@
+{
+  "filtros_data": {
+    "minutes": "minutes_threshold"
+  },
+  "calculo_indicadores_nivel":{
+  "minutes_threshold": 500
+  },
+  "seleccion_prototipos": ["Promedio_All", "Nivel Alto_All", "Nivel Top_All"],
+  "big5": ["laliga", "premier-league", "ger-bundesliga", "ita-seriea", "fra-ligue1"]
+}

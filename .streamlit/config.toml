@@ -1,0 +1,11 @@
+[global]
+developmentMode = false
+[theme]
+base="light"
+primaryColor="#6304b3"
+secondaryBackgroundColor="#f1e2ff"
+textColor="#000000"
+[server]
+runOnSave = true
+[watcher]
+type = "poll"
