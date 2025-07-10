@@ -34,7 +34,7 @@ def get_data():
     dim_competicion=pd.read_sql("""select * from dim_competicion fp
                      """, conn)
     
-    return [df_team,df_cols_team,dim_team,dim_medida_team,dim_modelo_categoria]
+    return [df_team,df_cols_team,dim_team,dim_medida_team,dim_modelo_categoria,dim_competicion]
 
 def boxplot_xaxisv2_plotly_teams(df, select_pl, col, cluster_col, yaxis_title="", show_legend=True):
     fig = go.Figure()
@@ -133,12 +133,12 @@ def boxplot_xaxisv2_plotly_teams(df, select_pl, col, cluster_col, yaxis_title=""
     return fig
 # Conexión
 conn = get_conn()
-df_team,df_cols_team,dim_team,dim_medida_team,dim_modelo_categoria = get_data()
+df_team,df_cols_team,dim_team,dim_medida_team,dim_modelo_categoria ,dim_competicion= get_data()
 # Sidebar
 st.sidebar.title("🏁 Portada")
 st.sidebar.subheader("Filtros")
 
-comp_opts = sorted(dim_team[dim_team.countryName.isin(['Inglaterra', 'Spain', 'France', 'Germany', 'Italy'])].competition.unique())
+comp_opts = list(dim_competicion[dim_competicion.pais_desc.isin(["España","Inglaterra","Italia","Francia","Alemania"])].sort_values(by=["tier_num","pais_id"]).competition.unique())
 season_opts = sorted(["2024-2025"])
 
 # Inicializamos session_state con valores si no existen

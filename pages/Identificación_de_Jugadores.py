@@ -25,8 +25,8 @@ def get_params():
         params = json.load(f)
     return params
 
-def filtros_sidebar(dim_team):
-    comp_opts = sorted(dim_team[dim_team.countryName.isin(['Inglaterra', 'Spain', 'France', 'Germany', 'Italy'])].competition.unique())
+def filtros_sidebar(dim_team,dim_competicion):
+    comp_opts = list(dim_competicion[dim_competicion.pais_desc.isin(["España","Inglaterra","Italia","Francia","Alemania"])].sort_values(by=["tier_num","pais_id"]).competition.unique())
     season_opts = sorted(dim_team.season.unique())
 
     # Inicialización de session_state
@@ -192,7 +192,7 @@ def main():
     """, unsafe_allow_html=True)
     
     cols_disponibles = df.columns
-    comps, seasons, teams = filtros_sidebar(dim_team)
+    comps, seasons, teams = filtros_sidebar(dim_team,dim_competicion)
     
     # Posiciones y criterios
     posiciones_opciones = dim_position['position_data'].unique().tolist()

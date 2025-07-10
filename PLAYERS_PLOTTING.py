@@ -451,7 +451,7 @@ def sradar(player,data,comp,mins, maxs,col_radar, position_padre,dim_player,dim_
     
     img2 = dim_team[dim_team.teamName==data[data.playerName_id==player].teamName.values[0]].img_logo.values[0]
     
-    title = ['playerName','teamName','competition',
+    title = ['playerName','teamName','competition_desc',
              "minutes",perf]
     
     try:
@@ -474,7 +474,7 @@ def sradar(player,data,comp,mins, maxs,col_radar, position_padre,dim_player,dim_
         age = rc.age.values[0]
     except:
         age=""
-    league = rc.competition.values[0]
+    league = rc.competition_desc.values[0]
     try:
         hei = rc.height.values[0]
         wei = rc.weight.values[0]
@@ -711,12 +711,12 @@ def sradar_comp(player1,player2,data,comp,mins, maxs,col_radar, position_padre, 
         err+=1
         print('Could not load team photo')
         pass
-    title = ['playerName','teamName','competition',
+    title = ['playerName','teamName','competition_desc',
              'minutes',perf]
     
 
     
-    league1 = rc1.competition.values[0]
+    league1 = rc1.competition_desc.values[0]
     try:
         age1 = rc1.age.values[0]
     except:
@@ -852,7 +852,7 @@ def sradar_comp(player1,player2,data,comp,mins, maxs,col_radar, position_padre, 
     rc1=rc2
     s1=s2
     
-    league1 = rc1.competition.values[0]
+    league1 = rc1.competition_desc.values[0]
     try:
         age1 = rc1.age.values[0]
     except:
@@ -991,9 +991,9 @@ def plot_percentiles(player,data,medidas,s,perf,posiciones,mins=None,maxs=None):
     
     
 
-    comp = rc.iloc[0]['competition']
-    rc=rc[rc.competition==comp]
-    title = ['playerName_id','teamName','minutes','competition',
+    comp = rc.iloc[0]['competition_desc']
+    rc=rc[rc.competition_desc==comp]
+    title = ['playerName_id','teamName','minutes','competition_desc',
              perf]
     
     changer = medidas["fancy_name_esp"].unique()
