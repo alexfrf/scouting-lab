@@ -185,118 +185,129 @@ def main():
     st.sidebar.subheader("Filtros")
     st.markdown("""
     <style>
-        /* Ajustar el ancho de la barra lateral */
         section[data-testid="stSidebar"] > div:first-child {
             width: 320;
         }
-
     </style>
     """, unsafe_allow_html=True)
     
     cols_disponibles = df.columns
     comps, seasons, teams = filtros_sidebar(dim_team)
     
+    # Posiciones y criterios
+    posiciones_opciones = dim_position['position_data'].unique().tolist()
+    criterios_opciones = sorted(["Adecuación", "Similitud", "Nivel"])
     
-    posiciones = st.session_state.get("posiciones", None)
-    criterios= st.session_state.get("criterios", None)
-    selected_min= st.session_state.get("selected_min", None)
-    selected_hei= st.session_state.get("selected_hei", None)
-    selected_age= st.session_state.get("selected_age", None)
-    select_league= st.session_state.get("select_league", None)
-    select_league_style= st.session_state.get("select_league_style", None)
-    number= st.session_state.get("number", None)
+    # Recuperar estado o usar valor por defecto
+    pos_default = st.session_state.get("posiciones", posiciones_opciones[0])
+    if pos_default not in posiciones_opciones:
+        pos_default = posiciones_opciones[0]
     
-
-    # Ya puedes usar comps, seasons y teams en esta página
+    criterio_default = st.session_state.get("criterios", criterios_opciones[0])
+    if criterio_default not in criterios_opciones:
+        criterio_default = criterios_opciones[0]
     
+    # Selectboxes sin claves fijas (gestión manual del estado)
+    posiciones = st.sidebar.selectbox("Selecciona Posición", posiciones_opciones, index=posiciones_opciones.index(pos_default))
+    criterios = st.sidebar.selectbox("Selecciona Criterio", criterios_opciones, index=criterios_opciones.index(criterio_default))
     
+    st.session_state["posiciones"] = posiciones
+    st.session_state["criterios"] = criterios
     
+    # Filtro por temporada y equipo
     if seasons:
-        df = df[df['season']==seasons]
+        df = df[df['season'] == seasons]
         if teams:
-            
-            teamid = dim_team[(dim_team.teamName==teams) & (dim_team.season==seasons)].teamId.values[0]
-            modelo_juego=df[df.teamId==teamid].team_modelo_id.values[0]
-            logo = dim_team[(dim_team.teamName==teams) & (dim_team.season==seasons)].img_logo.values[0]
+            teamid = dim_team[(dim_team.teamName == teams) & (dim_team.season == seasons)].teamId.values[0]
+            modelo_juego = df[df.teamId == teamid].team_modelo_id.values[0]
+            logo = dim_team[(dim_team.teamName == teams) & (dim_team.season == seasons)].img_logo.values[0]
     
-    if "posiciones" not in st.session_state:
-        st.session_state["posiciones"] = dim_position['position_data'].unique()[np.random.randint(0, len(dim_position['position_data'].unique()))]
-    if 'position' in cols_disponibles:
-        posiciones = st.sidebar.selectbox("Selecciona Posición", 
-                                          dim_position['position_data'].unique(),  
-                                          index=list(dim_position['position_data'].unique()).index(st.session_state["posiciones"]))
-        if posiciones:
-            df = df[(df['position']==posiciones) | (df['position2']==posiciones) | (df['position3']==posiciones)]
-            
-            position_padre = dim_position[dim_position.position_data==posiciones].position_padre.values[0]
-            df= df[df["cluster_{}".format(position_padre)].isna()==False]
-            df['cluster']=df["cluster_{}".format(position_padre)]
-            roles=dim_rol[dim_rol.position==position_padre]
-            df_time= df_time.groupby(by=["playerId","season"],as_index=False).minutes_played_position.sum()
-            df=pd.merge(df,df_time[['season','playerId','minutes_played_position']],how='left',
-                              on=['season','playerId'])
-    df= df[df["minutes_played_{}".format(position_padre)]>=300]
+    # Filtrado por posición
+    if 'position' in cols_disponibles and posiciones:
+        df = df[(df['position'] == posiciones) | (df['position2'] == posiciones) | (df['position3'] == posiciones)]
+        position_padre = dim_position[dim_position.position_data == posiciones].position_padre.values[0]
+        df = df[df[f"cluster_{position_padre}"].notna()]
+        df['cluster'] = df[f"cluster_{position_padre}"]
+        roles = dim_rol[dim_rol.position == position_padre]
     
-    if "criterios" not in st.session_state:
-        st.session_state["criterios"] = sorted(["Adecuación","Similitud","Nivel"])[0]
-    criterios = st.sidebar.selectbox("Selecciona Criterio", sorted(["Adecuación","Similitud","Nivel"]),  
-                                      index=sorted(["Adecuación","Similitud","Nivel"]).index(st.session_state["criterios"]))
-    indicadores={"Adecuación":"adecuacion_total",
-                 "Similitud":"adecuacion_total",
-                 "Nivel":f"Performance_{position_padre}"}
-    dfjug=pd.DataFrame()
-    if criterios=="Adecuación" or  criterios=="Similitud":
-        criterio="adecuacion_total"
-        if criterios=="Similitud":
-            player_sim_id = st.sidebar.selectbox("Selecciona Jugador", df[df.teamName==teams].playerName_id.unique(),  index=0)
-            accr="SIM"
-            dfjug = df[df.playerName_id==player_sim_id]
-            desc="SIMILITUD: mide el grado de parecido entre dos jugadores de la misma posición."
+        df_time = df_time.groupby(by=["playerId", "season"], as_index=False).minutes_played_position.sum()
+        df = pd.merge(df, df_time[['season', 'playerId', 'minutes_played_position']], how='left', on=['season', 'playerId'])
+        df = df[df[f"minutes_played_{position_padre}"] >= 300]
+    
+    # Indicadores
+    indicadores = {
+        "Adecuación": "adecuacion_total",
+        "Similitud": "adecuacion_total",
+        "Nivel": f"Performance_{position_padre}"
+    }
+    
+    dfjug = pd.DataFrame()
+    if criterios in ["Adecuación", "Similitud"]:
+        criterio = "adecuacion_total"
+        if criterios == "Similitud":
+            player_sim_id = st.sidebar.selectbox("Selecciona Jugador", df[df.teamName == teams].playerName_id.unique(), index=0)
+            dfjug = df[df.playerName_id == player_sim_id]
+            desc = "SIMILITUD: mide el grado de parecido entre dos jugadores de la misma posición."
+            accr = "SIM"
         else:
-            accr="ADE"
-            desc="ADECUACIÓN:Mide la capacidad de un jugador de adaptarse al modelo de juego del equipo." 
-    elif criterios=="Nivel":
-        criterio="Performance_{}".format(position_padre)
-        accr="ADE"
-        desc="ADECUACIÓN:Mide la capacidad de un jugador de adaptarse al modelo de juego del equipo." 
+            desc = "ADECUACIÓN: mide la capacidad de un jugador de adaptarse al modelo de juego del equipo."
+            accr = "ADE"
+    elif criterios == "Nivel":
+        criterio = f"Performance_{position_padre}"
+        desc = "ADECUACIÓN: mide la capacidad de un jugador de adaptarse al modelo de juego del equipo."
+        accr = "ADE"
     else:
-        accr="ADE"
-        desc="ADECUACIÓN:Mide la capacidad de un jugador de adaptarse al modelo de juego del equipo." 
+        criterio = f"Performance_{position_padre}"
+        desc = "ADECUACIÓN: mide la capacidad de un jugador de adaptarse al modelo de juego del equipo."
+        accr = "ADE"
     
+    # 🎚️ Otros filtros con estado persistente
+    max_jugadores = df.shape[0]
     
-    number = st.sidebar.slider(
-    "#Jugadores en Indicadores", 10,df.shape[0], value=50,
-    )
+    number_default = st.session_state.get("number", 50)
+    number = st.sidebar.slider("#Jugadores en Indicadores", 10, max_jugadores, value=number_default)
+    st.session_state["number"] = number
     
-    st.sidebar.divider()        
     if 'minutes' in cols_disponibles:
-        selected_min = st.sidebar.slider('Minutos Jugados', int(df['minutes'].min()),int(df['minutes'].max()),1000)
-        
-    #if 'nivel_{}'.format(position_padre) in cols_disponibles:
-    #    selected_niv = st.sidebar.multiselect("Selecciona Niveles",df['nivel_{}'.format(position_padre)].unique(),
-    #                                          df['nivel_{}'.format(position_padre)].unique())
+        min_minutes = int(df['minutes'].min())
+        max_minutes = int(df['minutes'].max())
+        selected_min_default = st.session_state.get("selected_min", 1000)
+        selected_min = st.sidebar.slider("Minutos Jugados", min_minutes, max_minutes, value=selected_min_default)
+        st.session_state["selected_min"] = selected_min
+    
     if 'age' in cols_disponibles:
-        selected_age = st.sidebar.slider('Edad Máxima', int(df['age'].min()),int(df['age'].max()),int(df['age'].max()))
-        
-    if 'height' in cols_disponibles and posiciones=="GK":
-        selected_hei = st.sidebar.number_input('Altura Mínima (cm)', 
-                                         int(df[df.height>0]['height'].min()))
-        
+        min_age = int(df['age'].min())
+        max_age = int(df['age'].max())
+        selected_age_default = st.session_state.get("selected_age", max_age)
+        selected_age = st.sidebar.slider("Edad Máxima", min_age, max_age, value=selected_age_default)
+        st.session_state["selected_age"] = selected_age
+    
+    if 'height' in cols_disponibles and posiciones == "GK":
+        min_height = int(df[df.height > 0]['height'].min())
+        selected_hei_default = st.session_state.get("selected_hei", min_height)
+        selected_hei = st.sidebar.number_input("Altura Mínima (cm)", min_value=min_height, value=selected_hei_default)
+        st.session_state["selected_hei"] = selected_hei
+    
     if 'competition' in cols_disponibles:
-        select_league_style = st.sidebar.selectbox('Selecciona Competiciones',["Personalizado","5 grandes ligas"],
-                                               index=0)
+        select_league_style_default = st.session_state.get("select_league_style", "Personalizado")
+        select_league_style = st.sidebar.selectbox("Selecciona Competiciones", ["Personalizado", "5 grandes ligas"], index=["Personalizado", "5 grandes ligas"].index(select_league_style_default))
+        st.session_state["select_league_style"] = select_league_style
+    
+        all_competitions = dim_team.competition.unique()
         if "5" in select_league_style:
-            select_league = st.sidebar.multiselect('Personaliza la selección',dim_team.competition.unique(),
-                                           config['big5'])
+            default_leagues = st.session_state.get("select_league", config['big5'])
         else:
-            select_league = st.sidebar.multiselect('Personaliza la selección',dim_team.competition.unique(),
-                                               dim_team.competition.unique(), label_visibility ="collapsed")
-        if len(select_league)==0:
-            for i in comps:
-                select_league.append(i)
+            default_leagues = st.session_state.get("select_league", all_competitions)
+    
+        select_league = st.sidebar.multiselect("Personaliza la selección", all_competitions, default=default_leagues)
+        if select_league:
+            st.session_state["select_league"] = select_league
+        else:
+            st.session_state["select_league"] = comps  # fallback
                 
     
-    
+   
+     
     
     
     df= pd.concat([df,dfjug])
