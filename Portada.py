@@ -138,7 +138,7 @@ df_team,df_cols_team,dim_team,dim_medida_team,dim_modelo_categoria ,dim_competic
 st.sidebar.title("🏁 Portada")
 st.sidebar.subheader("Filtros")
 
-comp_opts = list(dim_competicion[dim_competicion.pais_desc.isin(["España","Inglaterra","Italia","Francia","Alemania"])].sort_values(by=["tier_num","pais_id"]).competition.unique())
+comp_opts = list(dim_competicion[dim_competicion.pais_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","pais_id"]).competition.unique())
 season_opts = sorted(["2024-2025"])
 
 # Inicializamos session_state con valores si no existen

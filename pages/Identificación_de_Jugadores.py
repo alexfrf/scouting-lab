@@ -26,7 +26,7 @@ def get_params():
     return params
 
 def filtros_sidebar(dim_team,dim_competicion):
-    comp_opts = list(dim_competicion[dim_competicion.pais_desc.isin(["España","Inglaterra","Italia","Francia","Alemania"])].sort_values(by=["tier_num","pais_id"]).competition.unique())
+    comp_opts = list(dim_competicion[dim_competicion.pais_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","pais_id"]).competition.unique())
     season_opts = sorted(dim_team.season.unique())
 
     # Inicialización de session_state
