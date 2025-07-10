@@ -2,7 +2,7 @@
 """
 Created on Sun Jun 29 14:42:40 2025
 
-@author: aleex s
+@author: aleex 
 """
 
 import streamlit as st
@@ -573,7 +573,7 @@ def main():
     except:
         pass
     
-    if criterio=="Nivel":
+    if criterios!="Nivel":
         
         kpi5.dataframe(dim_rol[dim_rol.position==position_padre][['rol_desc','rol_desc_long']],
                        height=100,hide_index=True,use_container_width=True,
