@@ -293,13 +293,14 @@ def main():
         select_league_style = st.sidebar.selectbox("Selecciona Competiciones", ["Personalizado", "5 grandes ligas"], index=["Personalizado", "5 grandes ligas"].index(select_league_style_default))
         st.session_state["select_league_style"] = select_league_style
     
-        all_competitions = dim_team.competition.unique()
+        all_competitions = dim_competicion.competition.unique()
+        all_b5 = dim_competicion[dim_competicion.competition.isin(config['big5'])].competition.unique()
         if "5" in select_league_style:
             default_leagues = st.session_state.get("select_league", config['big5'])
+            select_league = st.sidebar.multiselect("Personaliza la selección", all_b5, default=all_b5)
         else:
-            default_leagues = st.session_state.get("select_league", all_competitions)
-    
-        select_league = st.sidebar.multiselect("Personaliza la selección", all_competitions, default=default_leagues)
+            default_leagues = st.session_state.get("select_league", all_competitions) 
+            select_league = st.sidebar.multiselect("Personaliza la selección", all_competitions,default=all_competitions)
         if select_league:
             st.session_state["select_league"] = select_league
         else:
