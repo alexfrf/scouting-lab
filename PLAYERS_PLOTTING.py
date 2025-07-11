@@ -1290,10 +1290,11 @@ def scatterplot_plotly(df, df_cols,x_metric, y_metric,how,teams,position_padre):
     if how=="rol_desc":
         colores = ['red', 'purple', 'turquoise', 'orange']
         tit = "Rol"
+        roles = df[how].unique()
     else:
         colores = ['red', 'yellow', 'green', 'purple']
         tit="Prototipo"
-    roles = df[how].unique()
+        roles = ['Bajo',"Promedio","Alto","Top"]
 
     # Detectar si son porcentajes
     x_is_pct = x_metric.endswith('_pct')

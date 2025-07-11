@@ -33,7 +33,7 @@ def get_data():
                      on=['teamId','season'],how='left')
     dim_competicion=pd.read_sql("""select * from dim_competicion fp
                      """, conn)
-    
+    df_cols_team = pd.merge(df_cols_team,dim_medida_team[['medida','fancy_name_esp_long']],on="medida",how='left')
     return [df_team,df_cols_team,dim_team,dim_medida_team,dim_modelo_categoria,dim_competicion]
 
 def boxplot_xaxisv2_plotly_teams(df, select_pl, col, cluster_col, yaxis_title="", show_legend=True):
@@ -353,8 +353,8 @@ ct, ct3 = st.columns([.74,.26])
 
 selectcol = ct.multiselect(
         "Selecciona medidas de ESTRUCTURA para los gráficos de dispersión",
-        list(df_cols_team[df_cols_team.categoria_id==5].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()),
-        list(df_cols_team[df_cols_team.categoria_id==5].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()[:2]))
+        list(df_cols_team[df_cols_team.categoria_id==5].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()),
+        list(df_cols_team[df_cols_team.categoria_id==5].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()[:2]))
 if len(selectcol)!=2:
     st.write("**:red[Selecciona dos Medidas]**")
 else:
@@ -374,12 +374,12 @@ else:
                   height=400,use_container_width=True, hide_index=True)
     df_team=pd.merge(df_team,dim_modelo_categoria[dim_modelo_categoria.categoria_id==5][['cluster','modelo_desc']],left_on="cluster_ESTRUCTURA",right_on="cluster")
     raf.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[0]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[0]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[0]
                                                   ))
     raf2.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[1]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[1]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[1]
                                                   ))
@@ -395,8 +395,8 @@ ct, ct3 = st.columns([.74,.26])
 
 selectcol = ct.multiselect(
         "Selecciona medidas de DEFENSA para los gráficos de dispersión",
-        list(df_cols_team[df_cols_team.categoria_id==1].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()),
-        list(df_cols_team[df_cols_team.categoria_id==1].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()[:2]))
+        list(df_cols_team[df_cols_team.categoria_id==1].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()),
+        list(df_cols_team[df_cols_team.categoria_id==1].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()[:2]))
 if len(selectcol)!=2:
     st.write("**:red[Selecciona dos Medidas]**")
 else:
@@ -416,12 +416,12 @@ else:
                   height=400,use_container_width=True, hide_index=True)
     df_team=pd.merge(df_team,dim_modelo_categoria[dim_modelo_categoria.categoria_id==1][['cluster','modelo_desc']],left_on="cluster_DEFENSA",right_on="cluster")
     raf.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[0]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[0]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[0]
                                                   ))
     raf2.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[1]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[1]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[1]
                                                   ))
@@ -437,8 +437,8 @@ st.markdown("**{}**".format(dim_modelo_categoria[(dim_modelo_categoria.cluster==
 ct, ct3 = st.columns([.74,.26])
 selectcol = ct.multiselect(
         "Selecciona medidas de CONSTRUCCIÓN para los gráficos de dispersión",
-        list(df_cols_team[df_cols_team.categoria_id==2].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()),
-        list(df_cols_team[df_cols_team.categoria_id==2].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()[:2]))
+        list(df_cols_team[df_cols_team.categoria_id==2].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()),
+        list(df_cols_team[df_cols_team.categoria_id==2].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()[:2]))
 if len(selectcol)!=2:
     st.write("**:red[Selecciona dos Medidas]**")
 else:
@@ -459,12 +459,12 @@ else:
                   height=400,use_container_width=True, hide_index=True)
     df_team=pd.merge(df_team,dim_modelo_categoria[dim_modelo_categoria.categoria_id==2][['cluster','modelo_desc']],left_on="cluster_CONSTRUCCION",right_on="cluster")
     raf.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[0]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[0]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[0]
                                                   ))
     raf2.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[1]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[1]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[1]
                                                   ))
@@ -480,8 +480,8 @@ st.markdown("**{}**".format(dim_modelo_categoria[(dim_modelo_categoria.cluster==
 ct, ct3 = st.columns([.74,.26])
 selectcol = ct.multiselect(
         "Selecciona medidas de ATAQUE para los gráficos de dispersión",
-        list(df_cols_team[df_cols_team.categoria_id==3].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()),
-        list(df_cols_team[df_cols_team.categoria_id==3].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()[:2]))
+        list(df_cols_team[df_cols_team.categoria_id==3].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()),
+        list(df_cols_team[df_cols_team.categoria_id==3].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()[:2]))
 if len(selectcol)!=2:
     st.write("**:red[Selecciona dos Medidas]**")
 else:
@@ -502,12 +502,12 @@ else:
                   height=400,use_container_width=True, hide_index=True)
     df_team=pd.merge(df_team,dim_modelo_categoria[dim_modelo_categoria.categoria_id==3][['cluster','modelo_desc']],left_on="cluster_ATAQUE",right_on="cluster")
     raf.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[0]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[0]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[0]
                                                   ))
     raf2.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[1]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[1]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[1]
                                                   ))
