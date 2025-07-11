@@ -195,7 +195,7 @@ def main():
     comps, seasons, teams = filtros_sidebar(dim_team,dim_competicion)
     
     # Posiciones y criterios
-    posiciones_opciones = dim_position['position_data'].unique().tolist()
+    posiciones_opciones = dim_position.sort_values(by="orden")['position_data'].unique().tolist()
     criterios_opciones = sorted(["Adecuación", "Similitud", "Nivel"])
     
     # Recuperar estado o usar valor por defecto
@@ -383,18 +383,18 @@ def main():
 
     with col_logo:
         st.image(logo, width=60)  # Ajusta el tamaño del logo
-    
+    posiciones_nombre = dim_position[dim_position.position_data==posiciones].position_desc.values[0]
     jug_sim=""
     #colti1, colti2= st.columns([0.7, 0.3])
     with col_title:
         if criterios=="Nivel":
-            st.subheader(f"| Top {posiciones} por {criterios}")
+            st.subheader(f"| Top {posiciones_nombre} por {criterios.upper()}")
         elif criterios=="Adecuación":
-            st.subheader(f"| Top {posiciones} por {criterios} a Modelo de Juego del Equipo")
+            st.subheader(f"| Top {posiciones_nombre} por {criterios.upper()} a Modelo de Juego del Equipo")
         else:
             jug_sim= df[df.playerName_id==player_sim_id].playerName.values[0]
             team_sim= df[df.playerName_id==player_sim_id].teamName.values[0]
-            st.subheader(f"| Top {posiciones} por {criterios} a {jug_sim} ({team_sim})")
+            st.subheader(f"| Top {posiciones_nombre} por {criterios.upper()} a {jug_sim} ({team_sim})")
     #colti2.markdown("  Dispersión de {} por Rol de {}".format(criterio,position_padre))
     #○tabla_adecuacion['playerName'] = tabla_adecuacion['playerName'].apply(lambda x: f'<span style="font-size:18px;">{x}</span>')
     
@@ -541,6 +541,8 @@ def main():
     
     df_own = tabla_adecuacion[(tabla_adecuacion.teamName==teams) & (tabla_adecuacion[criterio].isna()==False)].sort_values(by="minutes",ascending=False).head(4)
     df_own= df_own.sort_values(by=criterio,ascending=False)
+    st.caption("{} jugadores devueltos para la posición de {}".format(tabla_adecuacion.shape[0],posiciones_nombre))
+    
     kpi1,_,kpi2,_,kpi3,_,kpi4,_,_,kpi5 = st.columns([.22,.03,.22,.03,.22,.03,.22,.01,.01,.5])
     try:
         a, b, c= kpi1.columns([.15,.4,.4])
