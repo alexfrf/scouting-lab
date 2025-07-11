@@ -209,13 +209,10 @@ def main():
     
     # Selectboxes sin claves fijas (gestión manual del estado)
     posiciones = st.sidebar.selectbox("Selecciona Posición", posiciones_opciones, index=posiciones_opciones.index(pos_default))
-    
     criterios = st.sidebar.selectbox("Selecciona Criterio", criterios_opciones, index=criterios_opciones.index(criterio_default))
     
     st.session_state["posiciones"] = posiciones
-    #
     st.session_state["criterios"] = criterios
-    #
     
     # Filtro por temporada y equipo
     if seasons:
