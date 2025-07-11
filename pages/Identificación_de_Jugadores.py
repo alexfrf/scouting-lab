@@ -209,10 +209,13 @@ def main():
     
     # Selectboxes sin claves fijas (gestión manual del estado)
     posiciones = st.sidebar.selectbox("Selecciona Posición", posiciones_opciones, index=posiciones_opciones.index(pos_default))
+    
     criterios = st.sidebar.selectbox("Selecciona Criterio", criterios_opciones, index=criterios_opciones.index(criterio_default))
     
     st.session_state["posiciones"] = posiciones
+    #
     st.session_state["criterios"] = criterios
+    #
     
     # Filtro por temporada y equipo
     if seasons:
@@ -412,6 +415,9 @@ def main():
         tabla_adecuacion=calcula_tabla_adecuacion(columnas_tabla,columnas_aux,criterios, df[df.playerName_id==player_sim_id].playerId.values[0])
     else:
         tabla_adecuacion=calcula_tabla_adecuacion(columnas_tabla,columnas_aux,criterios)
+        
+    df_own = tabla_adecuacion[(tabla_adecuacion.teamName==teams) & (tabla_adecuacion[criterio].isna()==False)].sort_values(by="minutes",ascending=False).head(4)
+    df_own= df_own.sort_values(by=criterio,ascending=False)
     tabla_adecuacion = tabla_adecuacion[tabla_adecuacion['competition'].isin(select_league)]
     if posiciones:
             tabla_adecuacion = tabla_adecuacion[tabla_adecuacion['minutes']>=selected_min]
@@ -540,8 +546,8 @@ def main():
     
     #st.markdown(people)
     
-    df_own = tabla_adecuacion[(tabla_adecuacion.teamName==teams) & (tabla_adecuacion[criterio].isna()==False)].sort_values(by="minutes",ascending=False).head(4)
-    df_own= df_own.sort_values(by=criterio,ascending=False)
+    #df_own = tabla_adecuacion[(tabla_adecuacion.teamName==teams) & (tabla_adecuacion[criterio].isna()==False)].sort_values(by="minutes",ascending=False).head(4)
+    #df_own= df_own.sort_values(by=criterio,ascending=False)
     st.caption("{} jugadores devueltos para la posición de {}".format(tabla_adecuacion.shape[0],posiciones_nombre))
     
     kpi1,_,kpi2,_,kpi3,_,kpi4,_,_,kpi5 = st.columns([.22,.03,.22,.03,.22,.03,.22,.01,.01,.5])
