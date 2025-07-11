@@ -103,10 +103,10 @@ def boxplot_xaxisv2_plotly_teams(df, select_pl, col, cluster_col, yaxis_title=""
     # Layout final
     fig.update_layout(
         title=dict(
-            text="{} | Dispersión por Modelo de Juego".format(yaxis_title.upper()),
+            text="{}, por Modelo de Juego".format(yaxis_title.upper()),
             x=0.5,
             xanchor='center',
-            font=dict(size=13, family='Segoe UI', color='black'),
+            font=dict(size=12, family='Segoe UI', color='black'),
             y=.99,
         ),
         height=450,
