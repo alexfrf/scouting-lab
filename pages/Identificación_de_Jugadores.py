@@ -543,8 +543,8 @@ def main():
     
     #st.markdown(people)
     
-    #df_own = tabla_adecuacion[(tabla_adecuacion.teamName==teams) & (tabla_adecuacion[criterio].isna()==False)].sort_values(by="minutes",ascending=False).head(4)
-    #df_own= df_own.sort_values(by=criterio,ascending=False)
+    df_own = tabla_adecuacion[(tabla_adecuacion.teamName==teams) & (tabla_adecuacion[criterio].isna()==False)].sort_values(by="minutes",ascending=False).head(4)
+    df_own= df_own.sort_values(by=criterio,ascending=False)
     st.caption("{} jugadores devueltos para la posición de {}".format(tabla_adecuacion.shape[0],posiciones_nombre))
     
     kpi1,_,kpi2,_,kpi3,_,kpi4,_,_,kpi5 = st.columns([.22,.03,.22,.03,.22,.03,.22,.01,.01,.5])
@@ -554,7 +554,7 @@ def main():
                 caption=f"{dim_player[dim_player.playerName==df_own.playerName.values[0]].playerName.values[0]}")
         a.image(logo, width=80)
     
-        c.metric(criterio[:3].upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0]),
+        c.metric(accr.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0]),
                  border=False)
     except:
         pass
@@ -564,7 +564,7 @@ def main():
                 caption=f"{dim_player[dim_player.playerName==df_own.playerName.values[1]].playerName.values[0]}")
         a.image(logo, width=80)
         
-        c.metric(criterio[:3].upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0]),
+        c.metric(accr.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0]),
                  border=False)
     except:
         pass
@@ -576,7 +576,7 @@ def main():
                 caption=f"{dim_player[dim_player.playerName==df_own.playerName.values[2]].playerName.values[0]}")
         a.image(logo,width=80)
        
-        c.metric(criterio[:3].upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0]))
+        c.metric(accr.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0]))
     except:
         pass
     
@@ -586,7 +586,7 @@ def main():
         b.image(dim_player[dim_player.playerName==df_own.playerName.values[3]].logo.values[0],width=70,
                 caption=f"{dim_player[dim_player.playerName==df_own.playerName.values[3]].playerName.values[0]}")
         a.image(logo,width=80)
-        c.metric(criterio[:3].upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0]))
+        c.metric(accr.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0]))
     except:
         pass
     
