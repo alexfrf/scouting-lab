@@ -226,7 +226,7 @@ def scatter_xaxisv1_plotly(df, select_pl, col, cluster_col,position_padre):
 
     for i, color, y_val in zip(df[cluster_col].unique(), colors, y_offsets):
         cluster_df = df[df[cluster_col] == i]
-        select_row = cluster_df[cluster_df.index == select_pl]
+        select_row = cluster_df[cluster_df.playerName == select_pl]
         rest_df = cluster_df.drop(select_row.index)
 
         # Puntos normales del cluster
@@ -1279,7 +1279,7 @@ def pitch_maker(player,data,cluster,s,color='purple'):
                 
                 plt.gca().add_patch(rect2)
     
-    plt.figtext(.5,-0.1, "{}".format(cluster.replace(" ","\n")), size=18,weight='bold',ha = 'center',
+    plt.figtext(.5,-0.2, "{}".format(cluster.replace(" ","\n")), size=18,weight='bold',ha = 'center',
                 bbox=dict(facecolor=color, edgecolor='black', boxstyle='round', pad=0.2, linewidth=0, alpha=0.2))
     return fig
 

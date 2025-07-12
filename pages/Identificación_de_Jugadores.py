@@ -661,18 +661,18 @@ def main():
     col7.pyplot(pp.pitch_maker(select_pl,df,roles[roles.cluster==df[(df.playerName_id==select_pl) & (df.season==seasons)]["cluster_{}".format(position_padre)].values[0]].rol_desc.values[0],seasons,'purple'))
     if select_col_sc not in indicadores:
         if ligas_comp==list_comparar[1]:
-            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==dim_team[dim_team.teamName==tabla_adecuacion[tabla_adecuacion.playerName==select_pl].teamName.values[0]].competition.values[0]) | (df.playerName==select_pl)], tabla_adecuacion[tabla_adecuacion.playerName==select_pl].index[0],
+            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==dim_team[dim_team.teamName==tabla_adecuacion[tabla_adecuacion.playerName==select_pl].teamName.values[0]].competition.values[0]) | (df.playerName==select_pl)], select_pl,
                                                      df_cols[df_cols.fancy_name_esp==select_col_sc].medida.values[0],
             "rol_desc",position_padre
                         ))
         elif ligas_comp==list_comparar[-1]:
-            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==dim_team[dim_team.teamName==teams].competition.values[0]) | (df.playerName==select_pl)], tabla_adecuacion[tabla_adecuacion.playerName==select_pl].index[0],
+            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==dim_team[dim_team.teamName==teams].competition.values[0]) | (df.playerName==select_pl)], select_pl,
                                                      df_cols[df_cols.fancy_name_esp==select_col_sc].medida.values[0],
             "rol_desc",position_padre
                         ))
         else:
             
-            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df, tabla_adecuacion[tabla_adecuacion.playerName_id==select_pl].index[0],
+            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df, select_pl,
                                                      df_cols[df_cols.fancy_name_esp==select_col_sc].medida.values[0],
             "rol_desc",position_padre
                         ))
@@ -682,18 +682,18 @@ def main():
     else:
         
         if ligas_comp==list_comparar[1]:
-            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==dim_team[dim_team.teamName==tabla_adecuacion[tabla_adecuacion.playerName==select_pl].teamName.values[0]].competition.values[0]) | (df.playerName==select_pl)], tabla_adecuacion[tabla_adecuacion.playerName==select_pl].index[0],
+            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==dim_team[dim_team.teamName==tabla_adecuacion[tabla_adecuacion.playerName==select_pl].teamName.values[0]].competition.values[0]) | (df.playerName==select_pl)], select_pl,
                                                      indicadores[select_col_sc],
             "rol_desc",position_padre
                         ))
         elif ligas_comp==list_comparar[-1]:
-            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==dim_team[dim_team.teamName==teams].competition.values[0]) | (df.playerName_id==select_pl)], tabla_adecuacion[tabla_adecuacion.playerName==select_pl].index[0],
+            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==dim_team[dim_team.teamName==teams].competition.values[0]) | (df.playerName_id==select_pl)], select_pl,
                                                      indicadores[select_col_sc],
             "rol_desc",position_padre
                         ))
         else:
             
-            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df, tabla_adecuacion[tabla_adecuacion.playerName_id==select_pl].index[0],
+            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df, select_pl,
                                                      indicadores[select_col_sc],
             "rol_desc",position_padre
                         ))
