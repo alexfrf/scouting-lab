@@ -18,6 +18,11 @@ def get_conn():
     con = ub.get_conn("config")
     return con
 
+def get_params():
+    with open("config/params.json", "r") as f:
+        params = json.load(f)
+    return params
+
 @st.cache_data(ttl=86400)  # 86400 segundos = 24 horas
 def get_data():
     conn=get_conn()
@@ -133,6 +138,7 @@ def boxplot_xaxisv2_plotly_teams(df, select_pl, col, cluster_col, yaxis_title=""
     return fig
 # Conexión
 conn = get_conn()
+config = get_params()
 df_team,df_cols_team,dim_team,dim_medida_team,dim_modelo_categoria ,dim_competicion= get_data()
 # Sidebar
 st.sidebar.title("🏁 Portada")
@@ -261,8 +267,8 @@ Su metodología se basa en cinco principios:
 - Obtener una entidad analítica que permita, a partir del perfil del jugador, conocer y comparar su capacidad de **ADECUACIÓN** a un modelo de juego.
 - Obtener una entidad analítica que mida el **RENDIMIENTO** neto del jugador y valore las **DISTANCIAS** de nivel entre ellos.
 
-[**Saber más**](https://drive.google.com/file/d/1fOr4nmB8YD9AUqSAZw0sQL9svS_011dg/view?usp=sharing)
-""")
+[**Saber más**]({})
+""".format(config['link']))
 meto=Image.open("Documentación/metodologia.png")
 col2.image(meto)
 st.divider()
