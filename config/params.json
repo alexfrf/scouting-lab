@@ -6,5 +6,6 @@
   "minutes_threshold": 500
   },
   "seleccion_prototipos": ["Promedio_All", "Nivel Alto_All", "Nivel Top_All"],
-  "big5": ["esp-laliga", "eng-premierleague", "ger-bundesliga", "ita-seriea", "fra-ligue1"]
+  "big5": ["esp-laliga", "eng-premierleague", "ger-bundesliga", "ita-seriea", "fra-ligue1"],
+  "link":"https://drive.google.com/file/d/1VtEZqcxnzflkv3SUDl-R46YLm9m2xAxA/view?usp=sharing"
 }

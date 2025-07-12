@@ -249,17 +249,21 @@ def main():
             dfjug = df[df.playerName_id == player_sim_id]
             desc = "SIMILITUD: mide el grado de parecido entre dos jugadores de la misma posición."
             accr = "SIM"
+            accr2=accr
         else:
             desc = "ADECUACIÓN: mide la capacidad de un jugador de adaptarse al modelo de juego del equipo."
             accr = "ADE"
+            accr2=accr
     elif criterios == "Nivel":
         criterio = f"Performance_{position_padre}"
         desc = "ADECUACIÓN: mide la capacidad de un jugador de adaptarse al modelo de juego del equipo."
         accr = "ADE"
+        accr2="PER"
     else:
         criterio = f"Performance_{position_padre}"
         desc = "ADECUACIÓN: mide la capacidad de un jugador de adaptarse al modelo de juego del equipo."
         accr = "ADE"
+        accr2=accr
     
     # 🎚️ Otros filtros con estado persistente
     max_jugadores = df.shape[0]
@@ -427,8 +431,7 @@ def main():
     df = pd.merge(df,roles[["rol_desc","cluster"]], 
                     how="left",on=["cluster"]
                     )
-    tabla_adecuacion=pd.concat([tabla_adecuacion,df[df.teamName==teams]])
-    tabla_adecuacion = tabla_adecuacion.drop_duplicates(subset=['playerId','season'],keep='first')
+    
     div1,div2,div2b,div3a,div3b = st.columns([0.3,.4,.1,.3,0.2])
     
      
@@ -460,6 +463,8 @@ def main():
                                            format="%f")
                        },
                    on_select="rerun")
+    tabla_adecuacion=pd.concat([tabla_adecuacion,df[df.teamName==teams]])
+    tabla_adecuacion = tabla_adecuacion.drop_duplicates(subset=['playerId','season'],keep='first')
     df=pd.merge(df,tabla_adecuacion[["playerId","season"]+[i for i in tabla_adecuacion.columns if i not in df.columns]],
                 how='left',on=["playerId","season"])
     filtered_df = tabla_adecuacion.iloc[ts.selection.rows]
@@ -554,7 +559,7 @@ def main():
                 caption=f"{dim_player[dim_player.playerName==df_own.playerName.values[0]].playerName.values[0]}")
         a.image(logo, width=80)
     
-        c.metric(accr.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0]),
+        c.metric(accr2.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0]),
                  border=False)
     except:
         pass
@@ -564,7 +569,7 @@ def main():
                 caption=f"{dim_player[dim_player.playerName==df_own.playerName.values[1]].playerName.values[0]}")
         a.image(logo, width=80)
         
-        c.metric(accr.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0]),
+        c.metric(accr2.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0]),
                  border=False)
     except:
         pass
@@ -576,7 +581,7 @@ def main():
                 caption=f"{dim_player[dim_player.playerName==df_own.playerName.values[2]].playerName.values[0]}")
         a.image(logo,width=80)
        
-        c.metric(accr.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0]))
+        c.metric(accr2.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0]))
     except:
         pass
     
@@ -586,7 +591,7 @@ def main():
         b.image(dim_player[dim_player.playerName==df_own.playerName.values[3]].logo.values[0],width=70,
                 caption=f"{dim_player[dim_player.playerName==df_own.playerName.values[3]].playerName.values[0]}")
         a.image(logo,width=80)
-        c.metric(accr.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0]))
+        c.metric(accr2.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0]))
     except:
         pass
     
@@ -731,14 +736,17 @@ def main():
     option_viz = st.radio(
                 "Selecciona Visualización Comparativa",["***Radar vs. Jugador***","***Mapa de Calor vs. Prototipos***"],horizontal =True)
     col8,col9,col10 = st.columns([0.6,0.6,.8]) 
-
+    
     df = pd.concat([df[df.playerName_id==select_pl],df])
     df = df.drop_duplicates(subset='playerId',keep='first')
     
     select_pl1 = col8.selectbox(
             "Mostrar comparación de:",
             tuple(df.playerName_id.unique()))
-
+    list_comparar = ["Competiciones Seleccionadas",
+                     "Competición del Jugador - {}".format(dim_team[dim_team.teamName==tabla_adecuacion[tabla_adecuacion.playerName_id==select_pl1].teamName.values[0]].competition.values[0]),
+                     "Competición del Equipo - {}".format(dim_team[dim_team.teamName==teams].competition.values[0])]
+    
    
     if "Radar" in option_viz:
         select_pl2 = col9.selectbox(
