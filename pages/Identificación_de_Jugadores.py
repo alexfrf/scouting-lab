@@ -199,10 +199,13 @@ def main():
     criterios_opciones = sorted(["Adecuación", "Similitud", "Nivel"])
     
     # Recuperar estado o usar valor por defecto
+    if "posiciones" not in st.session_state:
+        st.session_state["posiciones"] = posiciones_opciones[0]
     pos_default = st.session_state.get("posiciones", posiciones_opciones[0])
     if pos_default not in posiciones_opciones:
         pos_default = posiciones_opciones[0]
-    
+    if "criterios" not in st.session_state:
+        st.session_state["criterios"] = criterios_opciones[0]
     criterio_default = st.session_state.get("criterios", criterios_opciones[0])
     if criterio_default not in criterios_opciones:
         criterio_default = criterios_opciones[0]
