@@ -9,14 +9,28 @@ import pandas as pd
 from sqlalchemy import create_engine
 import json
 import streamlit as st
+import os
+
+def get_secret(key, subkey):
+    try:
+        # Primero intento con st.secrets (Streamlit Cloud)
+        return st.secrets[key][subkey]
+    except (KeyError, AttributeError):
+        # Si falla, intento leer variable de entorno (para Docker en Railway, DigitalOcean, etc)
+        env_key = f"{key.upper()}__{subkey.upper()}"
+        return os.environ.get(env_key)
 
 def get_conn(ruta_config):
-    user = st.secrets["db_watford"]["user"]
-    password = st.secrets["db_watford"]["password"]
-    host = st.secrets["db_watford"]["host"]
-    port = st.secrets["db_watford"]["port"]
-    database = st.secrets["db_watford"]["database"]
-
+    #user = st.secrets["db_watford"]["user"]
+    #password = st.secrets["db_watford"]["password"]
+    #host = st.secrets["db_watford"]["host"]
+    #port = st.secrets["db_watford"]["port"]
+    #database = st.secrets["db_watford"]["database"]
+    user = get_secret("db_watford", "user")
+    password = get_secret("db_watford", "password")
+    host = get_secret("db_watford", "host")
+    port = get_secret("db_watford", "port")
+    database = get_secret("db_watford", "database")
     engine = create_engine(
         f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{database}"
     )
