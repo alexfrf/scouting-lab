@@ -21,16 +21,16 @@ def get_secret(key, subkey):
         return os.environ.get(env_key)
 
 def get_conn(ruta_config):
-    #user = st.secrets["db_watford"]["user"]
-    #password = st.secrets["db_watford"]["password"]
-    #host = st.secrets["db_watford"]["host"]
-    #port = st.secrets["db_watford"]["port"]
-    #database = st.secrets["db_watford"]["database"]
-    user = os.environ.get("DB_WATFORD__USER")
-    password = os.environ.get("DB_WATFORD__PASSWORD")
-    host = os.environ.get("DB_WATFORD__HOST")
-    port = os.environ.get("DB_WATFORD__PORT")
-    database = os.environ.get("DB_WATFORD__DATABASE")
+    user = st.secrets["db_watford"]["user"]
+    password = st.secrets["db_watford"]["password"]
+    host = st.secrets["db_watford"]["host"]
+    port = st.secrets["db_watford"]["port"]
+    database = st.secrets["db_watford"]["database"]
+    #user = os.environ.get("DB_WATFORD__USER")
+    #password = os.environ.get("DB_WATFORD__PASSWORD")
+    #host = os.environ.get("DB_WATFORD__HOST")
+    #port = os.environ.get("DB_WATFORD__PORT")
+    #database = os.environ.get("DB_WATFORD__DATABASE")
     engine = create_engine(
         f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{database}"
     )
