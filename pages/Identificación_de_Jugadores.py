@@ -27,7 +27,7 @@ def get_params():
 
 def filtros_sidebar(dim_team,dim_competicion):
     comp_opts = list(dim_competicion[dim_competicion.pais_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","pais_id"]).competition.unique())
-    season_opts = sorted(dim_team.season.unique())
+    season_opts = sorted(["2024-2025"])
 
     # Inicialización de session_state
     if "comps" not in st.session_state:
@@ -902,21 +902,21 @@ def main():
         y_col = df_cols[df_cols['fancy_name_esp'] == selectcol[1]]['medida'].values[0]
         
         # Dibujar gráfico
-        fig = pp.scatterplot_plotly(df_filtrado,df_cols, x_col, y_col, opt,teams,position_padre)
+        fig = pp.scatterplot_plotly(df_filtrado, select_pl, df_cols, x_col, y_col, opt,teams,position_padre)
         c6,c7 = st.columns([.6,.4])    
         # Mostrar en columna
         c6.plotly_chart(fig, use_container_width=True)
         
         
         c7.plotly_chart(pp.boxplot_xaxisv2_plotly(df_filtrado,
-            tss[columnas_tabla].sort_values(by=criterio,ascending=False).index.values[0],
+            tss[tss.playerName_id==select_pl].index.values[0],
             x_col,
             "rol_desc",
             teams,
             selectcol[0]
             ))
         c7.plotly_chart(pp.boxplot_xaxisv2_plotly(df_filtrado,
-            tss[columnas_tabla].sort_values(by=criterio,ascending=False).index.values[0],
+            tss[tss.playerName_id==select_pl].index.values[0],
             y_col,
             "rol_desc",
             teams,

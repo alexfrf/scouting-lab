@@ -829,17 +829,17 @@ def sradar_comp(player1,player2,data,comp,mins, maxs,col_radar, position_padre, 
         pass
     
     
-    if rc1.index[0][-1] < comp[comp.prototipo_id=="Promedio_All"].Performance.values[0]:
+    if rc1.index[0][-1] < comp[comp.prototipo_id=="Nivel Medio_All"].Performance.values[0]:
         pass
     else:
         if rc1.index[0][-1] < comp[comp.prototipo_id==mins].Performance.values[0]:
             add_image(ci, fig1, left=0.03, bottom=0.91, width=0.02,height=0.02)
         else:
-            if rc1.index[0][-1] < comp[comp.prototipo_id=="Nivel Alto_top6"].Performance.values[0]: 
+            if rc1.index[0][-1] < comp[comp.prototipo_id=="Nivel Alto_All"].Performance.values[0]: 
                 
                 add_image(star, fig1, left=0.03, bottom=0.91, width=0.02,height=0.02)
             else:
-                if rc1.index[0][-1] < comp[comp.prototipo_id=="Nivel Top_top6"].Performance.values[0]:
+                if rc1.index[0][-1] < comp[comp.prototipo_id=="Nivel Top_All"].Performance.values[0]:
                     add_image(star, fig1, left=0.02, bottom=0.91, width=0.02,height=0.02)
                     add_image(star, fig1, left=0.04, bottom=0.91, width=0.02,height=0.02)
                 else:
@@ -961,17 +961,17 @@ def sradar_comp(player1,player2,data,comp,mins, maxs,col_radar, position_padre, 
         pass
     
 
-    if rc1.index[0][-1] < comp[comp.prototipo_id=="Promedio_All"].Performance.values[0]:
+    if rc1.index[0][-1] < comp[comp.prototipo_id=="Nivel Medio_All"].Performance.values[0]:
         pass
     else:
         if rc1.index[0][-1] < comp[comp.prototipo_id==mins].Performance.values[0]:
             add_image(ci, fig1, left=st+0.03, bottom=0.91, width=0.02,height=0.02)
         else:
-            if rc1.index[0][-1] < comp[comp.prototipo_id=="Nivel Alto_top6"].Performance.values[0]: 
+            if rc1.index[0][-1] < comp[comp.prototipo_id=="Nivel Alto_All"].Performance.values[0]: 
                 
                 add_image(star, fig1, left=st+0.02, bottom=0.91, width=0.02,height=0.02)
             else:
-                if rc1.index[0][-1] < comp[comp.prototipo_id=="Nivel Top_top6"].Performance.values[0]:
+                if rc1.index[0][-1] < comp[comp.prototipo_id=="Nivel Top_All"].Performance.values[0]:
                     add_image(star, fig1, left=st+0.02, bottom=0.91, width=0.02,height=0.02)
                     add_image(star, fig1, left=st+0.04, bottom=0.91, width=0.02,height=0.02)
                 else:
@@ -1283,7 +1283,7 @@ def pitch_maker(player,data,cluster,s,color='purple'):
                 bbox=dict(facecolor=color, edgecolor='black', boxstyle='round', pad=0.2, linewidth=0, alpha=0.2))
     return fig
 
-def scatterplot_plotly(df, df_cols,x_metric, y_metric,how,teams,position_padre):
+def scatterplot_plotly(df, select_pl, df_cols,x_metric, y_metric,how,teams,position_padre):
 
 
     # Paleta de colores personalizada
@@ -1292,7 +1292,7 @@ def scatterplot_plotly(df, df_cols,x_metric, y_metric,how,teams,position_padre):
         tit = "Rol"
         roles = df[how].unique()
     else:
-        colores = ['red', 'yellow', 'green', 'purple']
+        colores = ['coral', 'yellow', 'lightgreen', 'forestgreen']
         tit="Prototipo"
         roles = ['Bajo',"Promedio","Alto","Top"]
 
@@ -1329,6 +1329,18 @@ def scatterplot_plotly(df, df_cols,x_metric, y_metric,how,teams,position_padre):
 
         # Solo etiquetas visibles para jugadores del equipo
         df_equipo = df_rol[df_rol['teamName'] == teams]
+        fig.add_trace(go.Scatter(
+            x=df_equipo[x_metric],
+            y=df_equipo[y_metric],
+            mode='text',
+            text=df_equipo['playerName'],
+            textposition='top center',
+            textfont=dict(size=14, color='black', weight='bold'),
+            hoverinfo='skip',
+            showlegend=False
+        ))
+        
+        df_equipo = df_rol[df_rol['playerName_id'] == select_pl]
         fig.add_trace(go.Scatter(
             x=df_equipo[x_metric],
             y=df_equipo[y_metric],
