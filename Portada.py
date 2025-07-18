@@ -12,6 +12,7 @@ from PIL import Image
 import UTILS_BBDD as ub
 import plotly.graph_objects as go
 
+
 st.set_page_config(page_title="ScoutingLAB - Portada", layout="wide")
 @st.cache_resource
 def get_conn():
