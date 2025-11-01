@@ -23,17 +23,22 @@ def get_params():
         params = json.load(f)
     return params
 
+def read_query(sql):
+    engine = get_conn()
+    with engine.connect() as conn:
+        return pd.read_sql(sql, conn)
+
 @st.cache_data(ttl=86400)  # 86400 segundos = 24 horas
 def get_data():
     conn=get_conn()
     
-    df_team = pd.read_sql("select * from fact_ag_team_season where season = '2024-2025'", conn)
+    df_team = read_query("select * from fact_ag_team_season where season = '2024-2025'")
     df_team=df_team.drop_duplicates()
     df_team= ub.clean_df(df_team)
     #dim_team=pd.read_sql("""select * from dim_team""",conn)
-    df_cols_team= pd.read_sql("""select * from fact_medida_team""",conn)
-    dim_modelo_categoria= pd.read_sql("""select * from dim_modelo_categoria""",conn)
-    dim_medida_team = pd.read_sql("""select * from dim_medida_team""",conn)
+    df_cols_team=read_query("""select * from fact_medida_team""")
+    dim_modelo_categoria= read_query("""select * from dim_modelo_categoria""")
+    dim_medida_team = read_query("""select * from dim_medida_team""")
     #df_cols_team = pd.merge(df_cols_team,dim_medida_team[['medida','fancy_name_esp']],on="medida",how='left')
     return [df_team,df_cols_team,dim_medida_team,dim_modelo_categoria]
 

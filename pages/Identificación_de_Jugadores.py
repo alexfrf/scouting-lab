@@ -25,6 +25,11 @@ def get_params():
         params = json.load(f)
     return params
 
+def read_query(sql):
+    engine = get_conn()
+    with engine.connect() as conn:
+        return pd.read_sql(sql, conn)
+
 def filtros_sidebar(df):
     comp_opts = list(df[df.country_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","country_id"]).competition_desc.unique())
     season_opts = sorted(list(df.season.unique()))
@@ -82,28 +87,28 @@ def get_data(filtros,cond_where=""):
         query = """select * from fact_ag_player_season where season = '2024-2025'"""
     else:
         query = """select * from fact_ag_player_season where season = '2024-2025' and {}""".format(cond_where)
-    df = pd.read_sql(query, conn)
+    df = read_query(query)
     df=df.drop_duplicates()
     df= ub.clean_df(df)
-    df_prot = pd.read_sql("""select * from fact_ag_player_extra""", conn)
+    df_prot = read_query("""select * from fact_ag_player_extra""", conn)
     df_prot=df_prot.drop_duplicates()
     df_prot= ub.clean_df(df_prot)
-    dim_position=pd.read_sql("""select * from dim_position""",conn)
+    dim_position=read_query("""select * from dim_position""")
     dim_team = df.drop_duplicates(subset="teamId",keep='first')[['teamId','teamName','competition','competition_desc',
                                                                  'country_id','img_logo','country_desc','tier_id','tier_num']]
     #dim_player=pd.read_sql("""select * from dim_player where actual_sn=1""",conn)
-    df_cols= pd.read_sql("""select * from fact_medida_player""",conn)
-    dim_rol= pd.read_sql("""select * from dim_rol""",conn)
-    dim_modelo_categoria= pd.read_sql("""select * from dim_modelo_categoria""",conn)
-    dim_medida_player = pd.read_sql("""select * from dim_medida_player""",conn)
-    df_time = pd.read_sql("""select season, playerId, case when position is null then 'Sub' else position end as position, 
+    df_cols= read_query("""select * from fact_medida_player""")
+    dim_rol= read_query("""select * from dim_rol""")
+    dim_modelo_categoria= read_query("""select * from dim_modelo_categoria""")
+    dim_medida_player = read_query("""select * from dim_medida_player""")
+    df_time = read_query("""select season, playerId, case when position is null then 'Sub' else position end as position, 
                           sum(minutes_played) as minutes_played_position from fact_player_stats
                                   group by season, playerId, position
-                        """, conn)
+                        """)
     #dim_competicion=pd.read_sql("""select * from dim_competicion fp
     #                 """, conn)
-    dim_prototipo=pd.read_sql("""select * from dim_prototipo fp
-                     """, conn)
+    dim_prototipo=read_query("""select * from dim_prototipo fp
+                     """)
     #dim_position=pd.read_sql("""select * from dim_position""",conn)
     #dim_position=pd.read_sql("""select * from dim_position""",conn)
     for i in df_cols.medida.unique():
