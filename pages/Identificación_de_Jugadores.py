@@ -27,8 +27,7 @@ def get_params():
 
 def read_query(sql):
     engine = get_conn()
-    with engine.connect() as conn:
-        return pd.read_sql(sql, conn)
+    return pd.read_sql(sql, engine) 
 
 def filtros_sidebar(df):
     comp_opts = list(df[df.country_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","country_id"]).competition_desc.unique())
@@ -90,7 +89,7 @@ def get_data(filtros,cond_where=""):
     df = read_query(query)
     df=df.drop_duplicates()
     df= ub.clean_df(df)
-    df_prot = read_query("""select * from fact_ag_player_extra""", conn)
+    df_prot = read_query("""select * from fact_ag_player_extra""")
     df_prot=df_prot.drop_duplicates()
     df_prot= ub.clean_df(df_prot)
     dim_position=read_query("""select * from dim_position""")

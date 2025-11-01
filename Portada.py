@@ -25,8 +25,7 @@ def get_params():
 
 def read_query(sql):
     engine = get_conn()
-    with engine.connect() as conn:
-        return pd.read_sql(sql, conn)
+    return pd.read_sql(sql, engine)
 
 @st.cache_data(ttl=86400)  # 86400 segundos = 24 horas
 def get_data():
