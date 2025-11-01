@@ -24,7 +24,23 @@ def get_params():
     with open("config/params.json", "r") as f:
         params = json.load(f)
     return params
-
+def init_session_state():
+    defaults = {
+        "comps": None,
+        "seasons": None,
+        "teams": None,
+        "posiciones": None,
+        "criterios": None,
+        "number": 50,
+        "selected_min": 1000,
+        "selected_age": 99,
+        "selected_hei": 0,
+        "select_league_style": "Personalizado"
+    }
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+            
 def read_query(sql: str) -> pd.DataFrame:
     engine = get_conn()
     with engine.connect() as conn:
@@ -147,7 +163,7 @@ def gestion_jugdup(data):
     return data
 
 def main():
-    
+    init_session_state()
     config=get_params()
     
     st.set_page_config(layout="wide", page_title="ScoutingLAB")
