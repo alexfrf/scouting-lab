@@ -463,6 +463,8 @@ def main():
                              "nivel_id_{}".format(position_padre),
                              "Performance_{}".format(position_padre),
                              "adecuacion_total"]
+    if posiciones=="GK":
+        columnas_tabla.append("height")
     columnas_aux=["cluster",'Performance_{}_ATAQUE'.format(position_padre)]
     if criterios=="Similitud":
         tabla_adecuacion=calcula_tabla_adecuacion(columnas_tabla,columnas_aux,criterios, df[df.playerName_id==player_sim_id].playerId.values[0])
