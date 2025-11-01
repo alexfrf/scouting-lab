@@ -333,7 +333,16 @@ def main():
     if 'height' in cols_disponibles and posiciones == "GK":
         min_height = int(df[df.height > 0]['height'].min())
         selected_hei_default = st.session_state.get("selected_hei", min_height)
-        selected_hei = st.sidebar.number_input("Altura Mínima (cm)", min_value=min_height, value=selected_hei_default)
+        
+        # Ajusta si el valor guardado en session_state está por debajo del mínimo
+        if selected_hei_default < min_height:
+            selected_hei_default = min_height
+        
+        selected_hei = st.sidebar.number_input(
+            "Altura Mínima (cm)",
+            min_value=min_height,
+            value=selected_hei_default
+        )
         st.session_state["selected_hei"] = selected_hei
     
     if 'competition' in cols_disponibles:
