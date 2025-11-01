@@ -33,7 +33,7 @@ def read_query(sql: str) -> pd.DataFrame:
     return df
 
 def filtros_sidebar(df):
-    comp_opts = list(df[df.pais_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","pais_id"]).competition_desc.unique())
+    comp_opts = list(df[df.pais_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","country_id"]).competition_desc.unique())
     season_opts = sorted(list(df.season.unique()))
 
     # Inicialización de session_state
