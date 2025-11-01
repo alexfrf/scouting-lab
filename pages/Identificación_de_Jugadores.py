@@ -32,78 +32,27 @@ def read_query(sql: str) -> pd.DataFrame:
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
     return df
 
-def init_session_state(df):
-    # Competición
-    if "comps" not in st.session_state:
-        comp_opts = list(df[df.country_id.isin(["ESP","ENG","ITA","FRA","GER"])]
-                         .sort_values(by=["tier_num","country_id"])
-                         .competition_desc.unique())
-        st.session_state.comps = comp_opts[0]
-
-    # Temporada
-    if "seasons" not in st.session_state:
-        season_opts = sorted(df.season.unique())
-        st.session_state.seasons = season_opts[-1]
-
-    # Equipo
-    if "teams" not in st.session_state:
-        st.session_state.teams = None
-
-    # Posición
-    if "posiciones" not in st.session_state:
-        posiciones_opciones = df.position.unique().tolist()
-        st.session_state.posiciones = posiciones_opciones[0]
-
-    # Criterio
-    if "criterios" not in st.session_state:
-        criterios_opciones = ["Adecuación", "Similitud", "Nivel"]
-        st.session_state.criterios = criterios_opciones[0]
-
-    # Número de jugadores en indicadores
-    if "number" not in st.session_state:
-        st.session_state.number = 50
-
-    # Minutos jugados
-    if "selected_min" not in st.session_state:
-        st.session_state.selected_min = 1000
-
-    # Edad máxima
-    if "selected_age" not in st.session_state:
-        st.session_state.selected_age = df['age'].max()
-
-    # Altura mínima (solo porteros)
-    if "selected_hei" not in st.session_state:
-        st.session_state.selected_hei = df[df.height>0]['height'].min()
-
-    # Selección de ligas
-    if "select_league_style" not in st.session_state:
-        st.session_state.select_league_style = "Personalizado"
-    if "select_league" not in st.session_state:
-        st.session_state.select_league = df.competition_desc.unique().tolist()
-
-
-# -----------------------------
-# 🎛️ Barra lateral de filtros
-# -----------------------------
 def filtros_sidebar(df):
-    # Inicializamos el session_state
-    init_session_state(df)
-
-    # Opciones
+    # --- Inicialización del session_state ---
     comp_opts = list(df[df.country_id.isin(["ESP","ENG","ITA","FRA","GER"])]
                      .sort_values(by=["tier_num","country_id"])
                      .competition_desc.unique())
     season_opts = sorted(df.season.unique())
-    team_opts = sorted(df[(df.competition_desc == st.session_state.comps) &
-                          (df.season == st.session_state.seasons)].teamName.unique())
+
+    if "comps" not in st.session_state:
+        st.session_state.comps = comp_opts[0]
+    if "seasons" not in st.session_state:
+        st.session_state.seasons = season_opts[-1]
+    if "teams" not in st.session_state:
+        st.session_state.teams = None
 
     # --- Select de competición ---
     selected_comp = st.sidebar.selectbox("Selecciona Competición", comp_opts,
                                          index=comp_opts.index(st.session_state.comps))
     if selected_comp != st.session_state.comps:
         st.session_state.comps = selected_comp
-        st.session_state.teams = None
-        st.experimental_rerun()
+        st.session_state.teams = None  # reinicia equipo
+        st.experimental_rerun()        # solo aquí
 
     # --- Select de temporada ---
     selected_season = st.sidebar.selectbox("Selecciona Temporada", season_opts,
@@ -111,57 +60,24 @@ def filtros_sidebar(df):
     if selected_season != st.session_state.seasons:
         st.session_state.seasons = selected_season
         st.session_state.teams = None
-        st.experimental_rerun()
+        st.experimental_rerun()        # solo aquí
 
-    # --- Select de equipo ---
+    # --- Lista de equipos válida ---
     team_opts = sorted(df[(df.competition_desc == st.session_state.comps) &
                           (df.season == st.session_state.seasons)].teamName.unique())
+
+    # Inicializa equipo si no es válido
     if st.session_state.teams not in team_opts:
         st.session_state.teams = team_opts[0] if team_opts else None
 
+    # --- Select de equipo ---
     selected_team = st.sidebar.selectbox("Selecciona Equipo", options=team_opts,
                                          index=team_opts.index(st.session_state.teams))
     if selected_team != st.session_state.teams:
         st.session_state.teams = selected_team
-        st.experimental_rerun()
+        st.experimental_rerun()        # solo aquí
 
-    # --- Select de posición ---
-    posiciones_opciones = df.position.unique().tolist()
-    posiciones = st.sidebar.selectbox("Selecciona Posición", posiciones_opciones,
-                                      index=posiciones_opciones.index(st.session_state.posiciones))
-    st.session_state.posiciones = posiciones
-
-    # --- Select de criterio ---
-    criterios_opciones = ["Adecuación", "Similitud", "Nivel"]
-    criterios = st.sidebar.selectbox("Selecciona Criterio", criterios_opciones,
-                                     index=criterios_opciones.index(st.session_state.criterios))
-    st.session_state.criterios = criterios
-
-    # --- Slider número de jugadores ---
-    max_jugadores = df.shape[0]
-    number = st.sidebar.slider("#Jugadores en Indicadores", 10, max_jugadores,
-                               value=st.session_state.number)
-    st.session_state.number = number
-
-    # --- Slider minutos jugados ---
-    if 'minutes' in df.columns:
-        min_minutes = int(df['minutes'].min())
-        max_minutes = int(df['minutes'].max())
-        selected_min = st.sidebar.slider("Minutos Jugados", min_minutes, max_minutes,
-                                         value=st.session_state.selected_min)
-        st.session_state.selected_min = selected_min
-
-    # --- Slider edad máxima ---
-    if 'age' in df.columns:
-        min_age = int(df['age'].min())
-        max_age = int(df['age'].max())
-        selected_age = st.sidebar.slider("Edad Máxima", min_age, max_age,
-                                         value=st.session_state.selected_age)
-        st.session_state.selected_age = selected_age
-
-    return st.session_state.comps, st.session_state.seasons, st.session_state.teams, \
-           st.session_state.posiciones, st.session_state.criterios, \
-           st.session_state.number, st.session_state.selected_min, st.session_state.selected_age
+    return st.session_state.comps, st.session_state.seasons, st.session_state.teams
 # -----------------------------
 # 📡 Conexión a MySQL
 # -----------------------------
