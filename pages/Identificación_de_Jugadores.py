@@ -36,30 +36,29 @@ def filtros_sidebar(df):
     comp_opts = list(df[df.country_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","country_id"]).competition_desc.unique())
     season_opts = sorted(list(df.season.unique()))
 
-    # Inicialización de session_state
+    # Inicialización de session_state si no existe
     if "comps" not in st.session_state:
         st.session_state.comps = comp_opts[0]
     if "seasons" not in st.session_state:
         st.session_state.seasons = season_opts[-1]
     if "teams" not in st.session_state:
-        # Se define más abajo con team_opts
         st.session_state.teams = None
 
     # Select de competición
-    selected_comp = st.sidebar.selectbox("Selecciona Competición", comp_opts, index=comp_opts.index(st.session_state.comps))
-    if selected_comp != st.session_state.comps:
-        st.session_state.comps = selected_comp
-        st.session_state.teams = None  # reinicia el equipo seleccionado
-        st.rerun()
-
+    selected_comp = st.sidebar.selectbox(
+        "Selecciona Competición",
+        comp_opts,
+        index=comp_opts.index(st.session_state.comps)
+    )
+    st.session_state.comps = selected_comp
 
     # Select de temporada
-    selected_season = st.sidebar.selectbox("Selecciona Temporada", season_opts, index=season_opts.index(st.session_state.seasons))
-    if selected_season != st.session_state.seasons:
-        st.session_state.seasons = selected_season
-        st.session_state.teams = None  # reinicia el equipo seleccionado
-        st.rerun()
-
+    selected_season = st.sidebar.selectbox(
+        "Selecciona Temporada",
+        season_opts,
+        index=season_opts.index(st.session_state.seasons)
+    )
+    st.session_state.seasons = selected_season
 
     # Lista de equipos válida para esos filtros
     team_opts = sorted(df[
@@ -67,15 +66,16 @@ def filtros_sidebar(df):
         (df.season == st.session_state.seasons)
     ].teamName.unique())
 
+    # Ajustar equipo seleccionado
     if st.session_state.teams not in team_opts:
         st.session_state.teams = team_opts[0] if team_opts else None
-        st.rerun()
 
-
-    selected_team = st.sidebar.selectbox("Selecciona Equipo", options=team_opts, index=team_opts.index(st.session_state.teams))
-    if selected_team != st.session_state.teams:
-        st.session_state.teams = selected_team
-        st.rerun()
+    selected_team = st.sidebar.selectbox(
+        "Selecciona Equipo",
+        options=team_opts,
+        index=team_opts.index(st.session_state.teams)
+    )
+    st.session_state.teams = selected_team
 
     return st.session_state.comps, st.session_state.seasons, st.session_state.teams
 # -----------------------------
@@ -506,7 +506,7 @@ def main():
             teams,posiciones, criterios, position_padre
             ))
     try:
-        a, b, c= div1.columns([.15,.4,.4])
+        a, b, c= div1.columns([.1,.35,.55])
         if filtered_df.shape[0]>0:
             b.image(df[df.playerName==tss.playerName.values[0]].logo.values[0],width=80,
                     caption=f"{df[df.playerName==tss.playerName.values[0]].playerName.values[0]}")
