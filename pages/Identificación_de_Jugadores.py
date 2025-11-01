@@ -32,79 +32,52 @@ def read_query(sql: str) -> pd.DataFrame:
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
     return df
 
-def filtros_sidebar(df_team):
-    """
-    Sidebar de filtros: competición, temporada y equipo.
-    Mantiene sincronización de equipos según competición y temporada.
-    Devuelve: comps, seasons, teams (valores seleccionados)
-    """
+def filtros_sidebar(df):
+    comp_opts = list(df[df.pais_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","pais_id"]).competition_desc.unique())
+    season_opts = sorted(list(df.season.unique()))
 
-    # Opciones de competición y temporada
-    comp_opts = sorted(df_team.competition_desc.unique())
-    season_opts = sorted(df_team.season.unique())
-
-    # Inicializar session_state si no existen
+    # Inicialización de session_state
     if "comps" not in st.session_state:
         st.session_state.comps = comp_opts[0]
-
     if "seasons" not in st.session_state:
         st.session_state.seasons = season_opts[-1]
-
     if "teams" not in st.session_state:
+        # Se define más abajo con team_opts
         st.session_state.teams = None
 
-    # Función para recalcular lista de equipos según filtros actuales
-    def get_team_options():
-        return sorted(
-            df_team[
-                (df_team.competition_desc == st.session_state.comps) &
-                (df_team.season == st.session_state.seasons)
-            ].teamName.unique()
-        )
+    # Select de competición
+    selected_comp = st.sidebar.selectbox("Selecciona Competición", comp_opts, index=comp_opts.index(st.session_state.comps))
+    if selected_comp != st.session_state.comps:
+        st.session_state.comps = selected_comp
+        st.session_state.teams = None  # reinicia el equipo seleccionado
+        st.rerun()
 
-    # Callbacks de selectboxes
-    def on_change_comp():
-        st.session_state.teams = None  # reset equipo al cambiar competición
 
-    def on_change_season():
-        st.session_state.teams = None  # reset equipo al cambiar temporada
+    # Select de temporada
+    selected_season = st.sidebar.selectbox("Selecciona Temporada", season_opts, index=season_opts.index(st.session_state.seasons))
+    if selected_season != st.session_state.seasons:
+        st.session_state.seasons = selected_season
+        st.session_state.teams = None  # reinicia el equipo seleccionado
+        st.rerun()
 
-    # Sidebar: competición
-    st.sidebar.selectbox(
-        "Selecciona Competición",
-        options=comp_opts,
-        index=comp_opts.index(st.session_state.comps),
-        key="comps",
-        on_change=on_change_comp
-    )
 
-    # Sidebar: temporada
-    st.sidebar.selectbox(
-        "Selecciona Temporada",
-        options=season_opts,
-        index=season_opts.index(st.session_state.seasons),
-        key="seasons",
-        on_change=on_change_season
-    )
+    # Lista de equipos válida para esos filtros
+    team_opts = sorted(df[
+        (df.competition_desc == st.session_state.comps) &
+        (df.season == st.session_state.seasons)
+    ].teamName.unique())
 
-    # Recalcular equipos filtrados
-    team_opts = get_team_options()
-
-    # Inicializar equipo si no existe o no está en la lista filtrada
     if st.session_state.teams not in team_opts:
         st.session_state.teams = team_opts[0] if team_opts else None
+        st.rerun()
 
-    # Sidebar: equipo
-    st.sidebar.selectbox(
-        "Selecciona Equipo",
-        options=team_opts,
-        index=team_opts.index(st.session_state.teams) if st.session_state.teams in team_opts else 0,
-        key="teams"
-    )
 
-    # Devolver valores seleccionados
+    selected_team = st.sidebar.selectbox("Selecciona Equipo", options=team_opts, index=team_opts.index(st.session_state.teams))
+    if selected_team != st.session_state.teams:
+        st.session_state.teams = selected_team
+        st.rerun()
+
     return st.session_state.comps, st.session_state.seasons, st.session_state.teams
-
 # -----------------------------
 # 📡 Conexión a MySQL
 # -----------------------------
@@ -136,6 +109,7 @@ def get_data(filtros,cond_where=""):
                         """)
     #dim_competicion=pd.read_sql("""select * from dim_competicion fp
     #                 """, conn)
+
     dim_prototipo=read_query("""select * from dim_prototipo fp
                      """)
     #dim_position=pd.read_sql("""select * from dim_position""",conn)
