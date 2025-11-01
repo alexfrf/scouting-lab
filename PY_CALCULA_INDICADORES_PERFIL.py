@@ -12,6 +12,7 @@ import json
 import numpy as np
 from sqlalchemy import text
 import itertools
+import UTILS_BBDD as ub
 
 def insert_in_batches(df, table_name, engine, batch_size=10000):
     with engine.begin() as conn:
@@ -478,7 +479,7 @@ def calcula_similitud_jugador(df_jugadores_pos, df_cols, position, player_id_obj
 
     # Medidas de perfil
     medidas = list(df_cols['medida'].unique())
-
+    
     # Escalado de medidas (entre 0 y 1)
     scaler = MinMaxScaler()
     df_filtrado[medidas] = scaler.fit_transform(df_filtrado[medidas])
@@ -542,8 +543,9 @@ def main():
         df_medidas=df_cols[(df_cols.position==pos) & (df_cols.seleccion_perfil_sn==1)]
         postime=pd.DataFrame()
         for i in dimpos_pos:
-            postime_aux = pd.read_sql("""select fp.* from fact_player_position fp  where position = '{}'
-                             """.format(i), conn)
+            postime_aux = pd.read_sql("""select season, playerId, case when position is null then 'Sub' else position end as position, sum(minutes_played) as minutes_played_position from fact_player_stats
+                                          where position = '{}' group by season, playerId, position
+                                """.format(i), conn)
             postime=pd.concat([postime,postime_aux])
         postime= postime.groupby(by=["playerId","season"],as_index=False).minutes_played_position.sum()
         dff=pd.merge(dff,postime[['season','playerId','minutes_played_position']],how='left',
@@ -564,8 +566,9 @@ def main():
         dff=df_full[(df_full.position==pos) | (df_full.position2==pos) | (df_full.position3==pos)]
         postime=pd.DataFrame()
         for i in dimpos_pos:
-            postime_aux = pd.read_sql("""select fp.* from fact_player_position fp  where position = '{}'
-                             """.format(i), conn)
+            postime_aux = pd.read_sql("""select season, playerId, case when position is null then 'Sub' else position end as position, sum(minutes_played) as minutes_played_position from fact_player_stats
+                                          where position = '{}' group by season, playerId, position
+                                """.format(i), conn)
             postime=pd.concat([postime,postime_aux])
         postime= postime.groupby(by=["playerId","season"],as_index=False).minutes_played_position.sum()
         dff=pd.merge(dff,postime[['season','playerId','minutes_played_position']],how='left',

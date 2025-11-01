@@ -20,7 +20,7 @@ def get_secret(key, subkey):
         env_key = f"{key.upper()}__{subkey.upper()}"
         return os.environ.get(env_key)
 
-def get_conn(ruta_config):
+def get_conn():
     user = st.secrets["db_watford"]["user"]
     password = st.secrets["db_watford"]["password"]
     host = st.secrets["db_watford"]["host"]

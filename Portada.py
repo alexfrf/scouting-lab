@@ -12,11 +12,10 @@ from PIL import Image
 import UTILS_BBDD as ub
 import plotly.graph_objects as go
 
-
 st.set_page_config(page_title="ScoutingLAB - Portada", layout="wide")
 @st.cache_resource
 def get_conn():
-    con = ub.get_conn("config")
+    con = ub.get_conn()
     return con
 
 def get_params():
@@ -28,19 +27,15 @@ def get_params():
 def get_data():
     conn=get_conn()
     
-    df_team = pd.read_sql("select * from fact_ag_team_season", conn)
+    df_team = pd.read_sql("select * from fact_ag_team_season where season = '2024-2025'", conn)
     df_team=df_team.drop_duplicates()
     df_team= ub.clean_df(df_team)
-    dim_team=pd.read_sql("""select * from dim_team""",conn)
+    #dim_team=pd.read_sql("""select * from dim_team""",conn)
     df_cols_team= pd.read_sql("""select * from fact_medida_team""",conn)
     dim_modelo_categoria= pd.read_sql("""select * from dim_modelo_categoria""",conn)
     dim_medida_team = pd.read_sql("""select * from dim_medida_team""",conn)
-    df_team=pd.merge(df_team,dim_team[['teamId','season','img_logo']],
-                     on=['teamId','season'],how='left')
-    dim_competicion=pd.read_sql("""select * from dim_competicion fp
-                     """, conn)
-    df_cols_team = pd.merge(df_cols_team,dim_medida_team[['medida','fancy_name_esp_long']],on="medida",how='left')
-    return [df_team,df_cols_team,dim_team,dim_medida_team,dim_modelo_categoria,dim_competicion]
+    #df_cols_team = pd.merge(df_cols_team,dim_medida_team[['medida','fancy_name_esp']],on="medida",how='left')
+    return [df_team,df_cols_team,dim_medida_team,dim_modelo_categoria]
 
 def boxplot_xaxisv2_plotly_teams(df, select_pl, col, cluster_col, yaxis_title="", show_legend=True):
     fig = go.Figure()
@@ -112,7 +107,7 @@ def boxplot_xaxisv2_plotly_teams(df, select_pl, col, cluster_col, yaxis_title=""
             text="{}, por Modelo de Juego".format(yaxis_title.upper()),
             x=0.5,
             xanchor='center',
-            font=dict(size=12, family='Segoe UI', color='black'),
+            font=dict(size=14, family='Segoe UI', color='black'),
             y=.99,
         ),
         height=450,
@@ -125,7 +120,7 @@ def boxplot_xaxisv2_plotly_teams(df, select_pl, col, cluster_col, yaxis_title=""
             y=1.02,
             xanchor="right",
             x=1,
-            font=dict(size=12),
+            font=dict(size=10),
             title=""
         ),
         yaxis=yaxis_config,
@@ -140,13 +135,13 @@ def boxplot_xaxisv2_plotly_teams(df, select_pl, col, cluster_col, yaxis_title=""
 # Conexión
 conn = get_conn()
 config = get_params()
-df_team,df_cols_team,dim_team,dim_medida_team,dim_modelo_categoria ,dim_competicion= get_data()
+df_team,df_cols_team,dim_medida_team,dim_modelo_categoria= get_data()
 # Sidebar
 st.sidebar.title("🏁 Portada")
 st.sidebar.subheader("Filtros")
 
-comp_opts = list(dim_competicion[dim_competicion.pais_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","pais_id"]).competition.unique())
-season_opts = sorted(["2024-2025"])
+comp_opts = list(df_team[df_team.country_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","country_id"]).competition_desc.unique())
+season_opts = sorted(list(df_team.season.unique()))
 
 # Inicializamos session_state con valores si no existen
 if "comps" not in st.session_state:
@@ -157,9 +152,9 @@ if "seasons" not in st.session_state:
 
 # Esta función recalcula la lista de equipos validos
 def get_team_options():
-    return sorted(dim_team[
-        (dim_team.competition == st.session_state["comps"]) & 
-        (dim_team.season == st.session_state["seasons"])
+    return sorted(df_team[
+        (df_team.competition_desc == st.session_state["comps"]) & 
+        (df_team.season == st.session_state["seasons"])
     ].teamName.unique())
 
 # Inicializamos equipo si no existe o no está en opciones actuales
@@ -205,9 +200,9 @@ st.sidebar.selectbox(
 )
 
 # Recalcular equipos filtrados con la competición y temporada actuales
-team_opts = sorted(dim_team[
-    (dim_team["competition"] == st.session_state.comps) &
-    (dim_team["season"] == st.session_state.seasons)
+team_opts = sorted(df_team[
+    (df_team["competition_desc"] == st.session_state.comps) &
+    (df_team["season"] == st.session_state.seasons)
 ]["teamName"].unique())
 
 selected_team_index = team_opts.index(st.session_state["teams"]) if st.session_state["teams"] in team_opts else 0
@@ -223,7 +218,7 @@ seasons = st.session_state["seasons"]
 teams = st.session_state["teams"]
 
 # Ejemplo: mostrar logo o info
-logo = dim_team[(dim_team.teamName == teams) & (dim_team.season == seasons)].img_logo.values[0]
+logo = df_team[(df_team.teamName == teams) & (df_team.season == seasons)].img_logo.values[0]
 image_mini=Image.open("Documentación/logo.png")
 st.markdown("""
 <style>
@@ -251,9 +246,9 @@ if seasons:
     df_team = df_team[df_team['season']==seasons]
     if teams:
         
-        teamid = dim_team[(dim_team.teamName==teams) & (dim_team.season==seasons)].teamId.values[0]
+        teamid = df_team[(df_team.teamName==teams) & (df_team.season==seasons)].teamId.values[0]
         modelo_juego=df_team[df_team.teamId==teamid].modelo_id.values[0]
-        logo = dim_team[(dim_team.teamName==teams) & (dim_team.season==seasons)].img_logo.values[0]
+        logo = df_team[(df_team.teamName==teams) & (df_team.season==seasons)].img_logo.values[0]
 
 
 # Cuerpo
@@ -324,27 +319,27 @@ with kpi4:
     ].modelo_desc.values[0]), unsafe_allow_html=True)
 help_uni="UNICIDAD: nº y % de equipos de la misma liga que comparten modelo de juego -general o por fase-"
 kpi1.write("")
-kpi1.metric("**Unicidad - ESTRUCTURA**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.cluster_ESTRUCTURA==df_own.cluster_ESTRUCTURA.values[0]) & (df_team.competition==comps)].shape[0] / df_team[(df_team.competition==comps)].shape[0]),
-          "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.cluster_ESTRUCTURA==df_own.cluster_ESTRUCTURA.values[0]) & (df_team.competition==comps)].shape[0]-1,comps.upper()),
+kpi1.metric("**Unicidad - ESTRUCTURA**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.cluster_ESTRUCTURA==df_own.cluster_ESTRUCTURA.values[0]) & (df_team.competition_desc==comps)].shape[0] / df_team[(df_team.competition_desc==comps)].shape[0]),
+          "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.cluster_ESTRUCTURA==df_own.cluster_ESTRUCTURA.values[0]) & (df_team.competition_desc==comps)].shape[0]-1,comps.upper()),
           border=True, delta_color="off",
           help=help_uni)
 kpi2.write("")
-kpi2.metric("**Unicidad - DEFENSA**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.cluster_DEFENSA==df_own.cluster_DEFENSA.values[0]) & (df_team.competition==comps)].shape[0] / df_team[(df_team.competition==comps)].shape[0]),
-          "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.cluster_DEFENSA==df_own.cluster_DEFENSA.values[0]) & (df_team.competition==comps)].shape[0]-1,comps.upper()),
+kpi2.metric("**Unicidad - DEFENSA**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.cluster_DEFENSA==df_own.cluster_DEFENSA.values[0]) & (df_team.competition_desc==comps)].shape[0] / df_team[(df_team.competition_desc==comps)].shape[0]),
+          "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.cluster_DEFENSA==df_own.cluster_DEFENSA.values[0]) & (df_team.competition_desc==comps)].shape[0]-1,comps.upper()),
           border=True, delta_color="off",help=help_uni)
 kpi3.write("")
-kpi3.metric("**Unicidad - CONSTRUCCIÓN**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.cluster_CONSTRUCCION==df_own.cluster_CONSTRUCCION.values[0]) & (df_team.competition==comps)].shape[0] / df_team[(df_team.competition==comps)].shape[0]),
-          "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.cluster_CONSTRUCCION==df_own.cluster_CONSTRUCCION.values[0]) & (df_team.competition==comps)].shape[0]-1,comps.upper()),
+kpi3.metric("**Unicidad - CONSTRUCCIÓN**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.cluster_CONSTRUCCION==df_own.cluster_CONSTRUCCION.values[0]) & (df_team.competition_desc==comps)].shape[0] / df_team[(df_team.competition_desc==comps)].shape[0]),
+          "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.cluster_CONSTRUCCION==df_own.cluster_CONSTRUCCION.values[0]) & (df_team.competition_desc==comps)].shape[0]-1,comps.upper()),
           border=True, delta_color="off",help=help_uni)
 kpi4.write("")
-kpi4.metric("**Unicidad - ATAQUE**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.cluster_ATAQUE==df_own.cluster_ATAQUE.values[0]) & (df_team.competition==comps)].shape[0] / df_team[(df_team.competition==comps)].shape[0]),
-          "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.cluster_ATAQUE==df_own.cluster_ATAQUE.values[0]) & (df_team.competition==comps)].shape[0]-1,comps.upper()),
+kpi4.metric("**Unicidad - ATAQUE**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.cluster_ATAQUE==df_own.cluster_ATAQUE.values[0]) & (df_team.competition_desc==comps)].shape[0] / df_team[(df_team.competition_desc==comps)].shape[0]),
+          "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.cluster_ATAQUE==df_own.cluster_ATAQUE.values[0]) & (df_team.competition_desc==comps)].shape[0]-1,comps.upper()),
           border=True, delta_color="off",help=help_uni)
 
 kpi1.write("")
 kpi1,kpi2,kpi3=st.columns([.3,.3,.3])
-kpi2.metric("**UNICIDAD DEL MODELO**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition==comps)].shape[0] / df_team[(df_team.competition==comps)].shape[0]),
-          "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition==comps)].shape[0]-1,comps.upper()),
+kpi2.metric("**UNICIDAD DEL MODELO**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition_desc==comps)].shape[0] / df_team[(df_team.competition_desc==comps)].shape[0]),
+          "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition_desc==comps)].shape[0]-1,comps.upper()),
           border=True, delta_color="off",help=help_uni)
 sisi=[.37,.37,.26]
 
@@ -360,8 +355,8 @@ ct, ct3 = st.columns([.74,.26])
 
 selectcol = ct.multiselect(
         "Selecciona medidas de ESTRUCTURA para los gráficos de dispersión",
-        list(df_cols_team[df_cols_team.categoria_id==5].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()),
-        list(df_cols_team[df_cols_team.categoria_id==5].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()[:2]))
+        list(df_cols_team[df_cols_team.categoria_id==5].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()),
+        list(df_cols_team[df_cols_team.categoria_id==5].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()[:2]))
 if len(selectcol)!=2:
     st.write("**:red[Selecciona dos Medidas]**")
 else:
@@ -372,21 +367,21 @@ else:
     
     raf, raf2, sim = st.columns(sisi)
     #est_com=ct3.selectbox("Estructura: Competición", options=comp_opts, index=comp_opts.index(st.session_state["comps"]))
-    sim.dataframe(df_team[(df_team.cluster_ESTRUCTURA==df_own.cluster_ESTRUCTURA.values[0])][["img_logo","teamName","competition"]],
+    sim.dataframe(df_team[(df_team.cluster_ESTRUCTURA==df_own.cluster_ESTRUCTURA.values[0])][["img_logo","teamName","competition_desc"]],
                   column_config={
                       "teamName":"Equipo",
-                      "competition":"Competición",
+                      "competition_desc":"Competición",
                       "img_logo": st.column_config.ImageColumn(""
                   )},
                   height=400,use_container_width=True, hide_index=True)
     df_team=pd.merge(df_team,dim_modelo_categoria[dim_modelo_categoria.categoria_id==5][['cluster','modelo_desc']],left_on="cluster_ESTRUCTURA",right_on="cluster")
     raf.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[0]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[0]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[0]
                                                   ))
     raf2.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[1]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[1]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[1]
                                                   ))
@@ -402,8 +397,8 @@ ct, ct3 = st.columns([.74,.26])
 
 selectcol = ct.multiselect(
         "Selecciona medidas de DEFENSA para los gráficos de dispersión",
-        list(df_cols_team[df_cols_team.categoria_id==1].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()),
-        list(df_cols_team[df_cols_team.categoria_id==1].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()[:2]))
+        list(df_cols_team[df_cols_team.categoria_id==1].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()),
+        list(df_cols_team[df_cols_team.categoria_id==1].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()[:2]))
 if len(selectcol)!=2:
     st.write("**:red[Selecciona dos Medidas]**")
 else:
@@ -414,21 +409,21 @@ else:
     
     raf, raf2, sim = st.columns(sisi)
     #est_com=ct3.selectbox("DEFENSA: Competición", options=comp_opts, index=comp_opts.index(st.session_state["comps"]))
-    sim.dataframe(df_team[(df_team.cluster_DEFENSA==df_own.cluster_DEFENSA.values[0])][["img_logo","teamName","competition"]],
+    sim.dataframe(df_team[(df_team.cluster_DEFENSA==df_own.cluster_DEFENSA.values[0])][["img_logo","teamName","competition_desc"]],
                   column_config={
                       "teamName":"Equipo",
-                      "competition":"Competición",
+                      "competition_desc":"Competición",
                       "img_logo": st.column_config.ImageColumn(""
                   )},
                   height=400,use_container_width=True, hide_index=True)
     df_team=pd.merge(df_team,dim_modelo_categoria[dim_modelo_categoria.categoria_id==1][['cluster','modelo_desc']],left_on="cluster_DEFENSA",right_on="cluster")
     raf.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[0]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[0]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[0]
                                                   ))
     raf2.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[1]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[1]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[1]
                                                   ))
@@ -444,8 +439,8 @@ st.markdown("**{}**".format(dim_modelo_categoria[(dim_modelo_categoria.cluster==
 ct, ct3 = st.columns([.74,.26])
 selectcol = ct.multiselect(
         "Selecciona medidas de CONSTRUCCIÓN para los gráficos de dispersión",
-        list(df_cols_team[df_cols_team.categoria_id==2].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()),
-        list(df_cols_team[df_cols_team.categoria_id==2].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()[:2]))
+        list(df_cols_team[df_cols_team.categoria_id==2].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()),
+        list(df_cols_team[df_cols_team.categoria_id==2].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()[:2]))
 if len(selectcol)!=2:
     st.write("**:red[Selecciona dos Medidas]**")
 else:
@@ -457,21 +452,21 @@ else:
     
     raf, raf2, sim = st.columns(sisi)
     #est_com=ct3.selectbox("CONSTRUCCION: Competición", options=comp_opts, index=comp_opts.index(st.session_state["comps"]))
-    sim.dataframe(df_team[(df_team.cluster_CONSTRUCCION==df_own.cluster_CONSTRUCCION.values[0])][["img_logo","teamName","competition"]],
+    sim.dataframe(df_team[(df_team.cluster_CONSTRUCCION==df_own.cluster_CONSTRUCCION.values[0])][["img_logo","teamName","competition_desc"]],
                   column_config={
                       "teamName":"Equipo",
-                      "competition":"Competición",
+                      "competition_desc":"Competición",
                       "img_logo": st.column_config.ImageColumn(""
                   )},
                   height=400,use_container_width=True, hide_index=True)
     df_team=pd.merge(df_team,dim_modelo_categoria[dim_modelo_categoria.categoria_id==2][['cluster','modelo_desc']],left_on="cluster_CONSTRUCCION",right_on="cluster")
     raf.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[0]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[0]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[0]
                                                   ))
     raf2.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[1]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[1]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[1]
                                                   ))
@@ -487,8 +482,8 @@ st.markdown("**{}**".format(dim_modelo_categoria[(dim_modelo_categoria.cluster==
 ct, ct3 = st.columns([.74,.26])
 selectcol = ct.multiselect(
         "Selecciona medidas de ATAQUE para los gráficos de dispersión",
-        list(df_cols_team[df_cols_team.categoria_id==3].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()),
-        list(df_cols_team[df_cols_team.categoria_id==3].sort_values(by="importance_perfil",ascending=False).fancy_name_esp_long.unique()[:2]))
+        list(df_cols_team[df_cols_team.categoria_id==3].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()),
+        list(df_cols_team[df_cols_team.categoria_id==3].sort_values(by="importance_perfil",ascending=False).fancy_name_esp.unique()[:2]))
 if len(selectcol)!=2:
     st.write("**:red[Selecciona dos Medidas]**")
 else:
@@ -500,21 +495,21 @@ else:
     
     raf, raf2, sim = st.columns(sisi)
     #est_com=ct3.selectbox("ATAQUE: Competición", options=comp_opts, index=comp_opts.index(st.session_state["comps"]))
-    sim.dataframe(df_team[(df_team.cluster_ATAQUE==df_own.cluster_ATAQUE.values[0])][["img_logo","teamName","competition"]],
+    sim.dataframe(df_team[(df_team.cluster_ATAQUE==df_own.cluster_ATAQUE.values[0])][["img_logo","teamName","competition_desc"]],
                   column_config={
                       "teamName":"Equipo",
-                      "competition":"Competición",
+                      "competition_desc":"Competición",
                       "img_logo": st.column_config.ImageColumn(""
                   )},
                   height=400,use_container_width=True, hide_index=True)
     df_team=pd.merge(df_team,dim_modelo_categoria[dim_modelo_categoria.categoria_id==3][['cluster','modelo_desc']],left_on="cluster_ATAQUE",right_on="cluster")
     raf.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[0]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[0]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[0]
                                                   ))
     raf2.plotly_chart(boxplot_xaxisv2_plotly_teams(df_team,df_own.teamName.values[0],
-                                                  dim_medida_team[dim_medida_team.fancy_name_esp_long==selectcol[1]].medida.values[0],
+                                                  dim_medida_team[dim_medida_team.fancy_name_esp==selectcol[1]].medida.values[0],
                                                   "modelo_desc",
                                                   selectcol[1]
                                                   ))

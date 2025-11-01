@@ -18,16 +18,16 @@ from PIL import Image
 
 @st.cache_resource
 def get_conn():
-    con = ub.get_conn("config")
+    con = ub.get_conn()
     return con
 def get_params():
     with open("config/params.json", "r") as f:
         params = json.load(f)
     return params
 
-def filtros_sidebar(dim_team,dim_competicion):
-    comp_opts = list(dim_competicion[dim_competicion.pais_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","pais_id"]).competition.unique())
-    season_opts = sorted(["2024-2025"])
+def filtros_sidebar(df):
+    comp_opts = list(df[df.country_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","country_id"]).competition_desc.unique())
+    season_opts = sorted(list(df.season.unique()))
 
     # Inicialización de session_state
     if "comps" not in st.session_state:
@@ -55,9 +55,9 @@ def filtros_sidebar(dim_team,dim_competicion):
 
 
     # Lista de equipos válida para esos filtros
-    team_opts = sorted(dim_team[
-        (dim_team.competition == st.session_state.comps) &
-        (dim_team.season == st.session_state.seasons)
+    team_opts = sorted(df[
+        (df.competition_desc == st.session_state.comps) &
+        (df.season == st.session_state.seasons)
     ].teamName.unique())
 
     if st.session_state.teams not in team_opts:
@@ -79,9 +79,9 @@ def get_data(filtros,cond_where=""):
     conn=get_conn()
     config=get_params()
     if len(cond_where)==0:
-        query = """select * from fact_ag_player_season"""
+        query = """select * from fact_ag_player_season where season = '2024-2025'"""
     else:
-        query = """select * from fact_ag_player_season where {}""".format(cond_where)
+        query = """select * from fact_ag_player_season where season = '2024-2025' and {}""".format(cond_where)
     df = pd.read_sql(query, conn)
     df=df.drop_duplicates()
     df= ub.clean_df(df)
@@ -89,30 +89,34 @@ def get_data(filtros,cond_where=""):
     df_prot=df_prot.drop_duplicates()
     df_prot= ub.clean_df(df_prot)
     dim_position=pd.read_sql("""select * from dim_position""",conn)
-    dim_team=pd.read_sql("""select * from dim_team""",conn)
-    dim_player=pd.read_sql("""select * from dim_player where actual_sn=1""",conn)
+    dim_team = df.drop_duplicates(subset="teamId",keep='first')[['teamId','teamName','competition','competition_desc',
+                                                                 'country_id','img_logo','country_desc','tier_id','tier_num']]
+    #dim_player=pd.read_sql("""select * from dim_player where actual_sn=1""",conn)
     df_cols= pd.read_sql("""select * from fact_medida_player""",conn)
     dim_rol= pd.read_sql("""select * from dim_rol""",conn)
     dim_modelo_categoria= pd.read_sql("""select * from dim_modelo_categoria""",conn)
     dim_medida_player = pd.read_sql("""select * from dim_medida_player""",conn)
-    df_time = pd.read_sql("""select fp.* from fact_player_position fp
-                     """, conn)
-    dim_competicion=pd.read_sql("""select * from dim_competicion fp
-                     """, conn)
+    df_time = pd.read_sql("""select season, playerId, case when position is null then 'Sub' else position end as position, 
+                          sum(minutes_played) as minutes_played_position from fact_player_stats
+                                  group by season, playerId, position
+                        """, conn)
+    #dim_competicion=pd.read_sql("""select * from dim_competicion fp
+    #                 """, conn)
     dim_prototipo=pd.read_sql("""select * from dim_prototipo fp
                      """, conn)
     #dim_position=pd.read_sql("""select * from dim_position""",conn)
     #dim_position=pd.read_sql("""select * from dim_position""",conn)
     for i in df_cols.medida.unique():
-        df[i]=df[i].fillna(0)
+        if i in df.columns:
+            df[i]=df[i].fillna(0)
     if filtros:
         for fil in filtros:
             df= df[df[fil]>config["calculo_indicadores_nivel"]["minutes_threshold"]]
-    df=pd.merge(df,dim_player[['playerId','season','age','height','weight']],
-                how='left',
-                on=['playerId','season'])
-    df=pd.merge(df,dim_competicion[['competition','competition_desc','tier_id']],how='left',on="competition")
-    return [df, df_prot, df_time, df_cols,dim_position,dim_team,dim_player,dim_rol,dim_medida_player,dim_modelo_categoria,dim_competicion,dim_prototipo]
+    #df=pd.merge(df,dim_player[['playerId','season','age','height','weight']],
+    #            how='left',
+    #            on=['playerId','season'])
+    #df=pd.merge(df,dim_competicion[['competition','competition_desc','tier_id']],how='left',on="competition")
+    return [df, df_prot, df_time, df_cols,dim_position,dim_rol,dim_medida_player,dim_modelo_categoria,dim_prototipo,dim_team]
 
 
 def gestion_jugdup(data):
@@ -170,12 +174,12 @@ def main():
             margin-left: 0rem;
         }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
     
     with st.spinner("Cargando datos..."):
         
-        df,df_prot,df_time,df_cols,dim_position,dim_team,dim_player,dim_rol,dim_medida_player,dim_modelo_categoria,dim_competicion,dim_prototipo = get_data(config['filtros_data'])
+        df,df_prot,df_time,df_cols,dim_position,dim_rol,dim_medida_player,dim_modelo_categoria,dim_prototipo,dim_team = get_data(config['filtros_data'])
         df=df.drop_duplicates()
         df=gestion_jugdup(df)
 
@@ -192,7 +196,7 @@ def main():
     """, unsafe_allow_html=True)
     
     cols_disponibles = df.columns
-    comps, seasons, teams = filtros_sidebar(dim_team,dim_competicion)
+    comps, seasons, teams = filtros_sidebar(df)
     
     # Posiciones y criterios
     posiciones_opciones = dim_position.sort_values(by="orden")['position_data'].unique().tolist()
@@ -221,13 +225,16 @@ def main():
     if seasons:
         df = df[df['season'] == seasons]
         if teams:
-            teamid = dim_team[(dim_team.teamName == teams) & (dim_team.season == seasons)].teamId.values[0]
+            teamid = df[(df.teamName == teams) & (df.season == seasons)].teamId.values[0]
             modelo_juego = df[df.teamId == teamid].team_modelo_id.values[0]
-            logo = dim_team[(dim_team.teamName == teams) & (dim_team.season == seasons)].img_logo.values[0]
+            logo = df[(df.teamName == teams) & (df.season == seasons)].img_logo.values[0]
     
     # Filtrado por posición
     if 'position' in cols_disponibles and posiciones:
-        df = df[(df['position'] == posiciones) | (df['position2'] == posiciones) | (df['position3'] == posiciones)]
+        if posiciones=="MF":
+            df = df[(df['position'] == posiciones) | (df['position2'] == posiciones) | (df['position3'] == posiciones) | ((df.position=="DMF") & (df.teamName==teams))]
+        elif posiciones=="DMF":
+            df = df[(df['position'] == posiciones) | (df['position2'] == posiciones) | (df['position3'] == posiciones) | ((df.position=="MF") & (df.teamName==teams))]
         position_padre = dim_position[dim_position.position_data == posiciones].position_padre.values[0]
         df = df[df[f"cluster_{position_padre}"].notna()]
         df['cluster'] = df[f"cluster_{position_padre}"]
@@ -300,13 +307,13 @@ def main():
         select_league_style = st.sidebar.selectbox("Selecciona Competiciones", ["Personalizado", "5 grandes ligas"], index=["Personalizado", "5 grandes ligas"].index(select_league_style_default))
         st.session_state["select_league_style"] = select_league_style
     
-        all_competitions = dim_competicion.competition.unique()
-        all_b5 = dim_competicion[dim_competicion.competition.isin(config['big5'])].competition.unique()
+        all_competitions = df.competition_desc.unique()
+        all_b5 = df[df.competition.isin(config['big5'])].competition_desc.unique()
         if "5" in select_league_style:
-            default_leagues = st.session_state.get("select_league", config['big5'])
+            #default_leagues = st.session_state.get("select_league", config['big5'])
             select_league = st.sidebar.multiselect("Personaliza la selección", all_b5, default=all_b5)
         else:
-            default_leagues = st.session_state.get("select_league", all_competitions) 
+            #default_leagues = st.session_state.get("select_league", all_competitions) 
             select_league = st.sidebar.multiselect("Personaliza la selección", all_competitions,default=all_competitions)
         if select_league:
             st.session_state["select_league"] = select_league
@@ -336,12 +343,12 @@ def main():
     def calcula_tabla_adecuacion(cols,cols_aux,orden,sim=None):
         if orden!="Similitud":
             mod_player_ade = ipe.calcula_adecuacion_modelo(df, 
-                                                         df_cols[df_cols.position==position_padre], 
+                                                         df_cols[(df_cols.position==position_padre) & (df_cols.modelo_sn==1)], 
                                                          posiciones, 
                                                          modelo_juego)
             
         else:
-            mod_player_ade = ipe.calcula_similitud_jugador(df, df_cols[df_cols.position==position_padre], 
+            mod_player_ade = ipe.calcula_similitud_jugador(df, df_cols[(df_cols.position==position_padre) & (df_cols.modelo_sn==1)], 
                                                            posiciones, sim, 
                                                            seasons)
 
@@ -352,10 +359,10 @@ def main():
         data = pd.merge(mod_player_ade[["playerId","season","{}".format("adecuacion_total")]],
                         df[[i for i in df.columns if i in cols_fun]], how="left",on=["playerId","season"])
 
-        data = pd.merge(data,dim_team[["img_logo","teamName","season"]], 
-                        how="left",on=["teamName","season"])
-        data = pd.merge(data,dim_player[["logo","playerId","season","height"]], 
-                        how="left",on=["playerId","season"])
+        #data = pd.merge(data,dim_team[["img_logo","teamName","season"]], 
+        #                how="left",on=["teamName","season"])
+        #data = pd.merge(data,dim_player[["logo","playerId","season","height"]], 
+        #                how="left",on=["playerId","season"])
         data = pd.merge(data,roles[["rol_desc","cluster"]], 
                         how="left",on=["cluster"])
         
@@ -364,7 +371,7 @@ def main():
     
     
     def calcula_tabla_similitud(sim,orden="Similitud"):
-         mod_player_ade=  ipe.calcula_similitud_jugador(df, df_cols[df_cols.position==position_padre], 
+         mod_player_ade=  ipe.calcula_similitud_jugador(df, df_cols[(df_cols.position==position_padre) & (df_cols.modelo_sn==1)], 
                                                        position_padre, df[df.playerName_id==sim].playerId.values[0], 
                                                        seasons)
 
@@ -376,10 +383,9 @@ def main():
                          df[["playerId","season","position","teamName","cluster","Performance_{}".format(position_padre),
                              "nivel_id_{}".format(position_padre)]], how="left",on=["playerId","season"])
 
-         data = pd.merge(data,dim_team[["img_logo","teamName","season"]], 
-                         how="left",on=["teamName","season"])
-         data = pd.merge(data,dim_player[["logo","playerId","season"]], 
-                         how="left",on=["playerId","season"])
+         data = pd.merge(data,df[["img_logo","playerId","season",'logo']], 
+                        how="left",on=["playerId","season"])
+         
          data = pd.merge(data,roles[["rol_desc","cluster"]], 
                          how="left",on=["cluster"])
          
@@ -404,12 +410,12 @@ def main():
             team_sim= df[df.playerName_id==player_sim_id].teamName.values[0]
             st.subheader(f"| Top {posiciones_nombre} por {criterios.upper()} a {jug_sim} ({team_sim})")
     #colti2.markdown("  Dispersión de {} por Rol de {}".format(criterio,position_padre))
-    #○tabla_adecuacion['playerName'] = tabla_adecuacion['playerName'].apply(lambda x: f'<span style="font-size:18px;">{x}</span>')
+    #tabla_adecuacion['playerName'] = tabla_adecuacion['playerName'].apply(lambda x: f'<span style="font-size:18px;">{x}</span>')
     
 
     df["nivel_id_{}".format(position_padre)]=df["nivel_id_{}".format(position_padre)].apply(lambda x: x.replace("Nivel","").replace("All","").replace(position_padre,"").replace("_","").strip())
     columnas_tabla = ["logo","playerName","img_logo","teamName","tier_id","position","age","playerName_id",
-                             "rol_desc","competition",
+                             "rol_desc","competition_desc",
                              "minutes",
                              "nivel_id_{}".format(position_padre),
                              "Performance_{}".format(position_padre),
@@ -422,7 +428,7 @@ def main():
         
     df_own = tabla_adecuacion[(tabla_adecuacion.teamName==teams) & (tabla_adecuacion[criterio].isna()==False)].sort_values(by="minutes",ascending=False).head(4)
     df_own= df_own.sort_values(by=criterio,ascending=False)
-    tabla_adecuacion = tabla_adecuacion[tabla_adecuacion['competition'].isin(select_league)]
+    tabla_adecuacion = tabla_adecuacion[tabla_adecuacion['competition_desc'].isin(select_league)]
     if posiciones:
             tabla_adecuacion = tabla_adecuacion[tabla_adecuacion['minutes']>=selected_min]
     if posiciones:
@@ -481,6 +487,7 @@ def main():
             tss[columnas_tabla].sort_values(by=criterio,ascending=False).index.values[0],
             criterio,
             "rol_desc",
+            "cluster",
             teams,posiciones, criterios, position_padre
             ))
     else:
@@ -488,14 +495,15 @@ def main():
             filtered_df[columnas_tabla].sort_values(by=criterio,ascending=False).index.values[0],
             criterio,
             "rol_desc",
+            "cluster",
             teams,posiciones, criterios, position_padre
             ))
     try:
         a, b, c= div1.columns([.15,.4,.4])
         if filtered_df.shape[0]>0:
-            b.image(dim_player[dim_player.playerName==tss.playerName.values[0]].logo.values[0],width=80,
-                    caption=f"{dim_player[dim_player.playerName==tss.playerName.values[0]].playerName.values[0]}")
-            a.image(dim_team[dim_team.teamName==tss.teamName.values[0]].img_logo.values[0], width=30)
+            b.image(df[df.playerName==tss.playerName.values[0]].logo.values[0],width=80,
+                    caption=f"{df[df.playerName==tss.playerName.values[0]].playerName.values[0]}")
+            a.image(df[df.teamName==tss.teamName.values[0]].img_logo.values[0], width=30)
         if criterios=="Adecuación" or criterios=="Nivel":    
             c.metric("**{}**".format("ADE"),"{:.2f}".format(tss["adecuacion_total"].mean()),"{:.0%}".format((tss["adecuacion_total"].mean()-tabla_adecuacion["adecuacion_total"].mean())/tabla_adecuacion["adecuacion_total"].mean()),border=True,
                      help="ADECUACIÓN: mide el encaje potencial de un jugador en un modelo de juego. Comparación respecto a la media de la posición. BASE: Adecuación del jugador seleccionado (si existe). Sino: media del top {} por {}".format(number,criterios))
@@ -504,12 +512,12 @@ def main():
                      help="SIMILITUD: mide el grado de parecido entre dos jugadores. Comparación respecto a la media de la posición. BASE: Adecuación del jugador seleccionado (si existe). Sino: media del top {} por {}".format(number,criterios))
     except:
         pass
-    df_prot_comp=df_prot[(df_prot.competition==comps) & (df_prot.position==position_padre)]
-    media_per=df_prot[(df_prot.competition==comps) & (df_prot.position==position_padre) & (df_prot.prototipo_id=="Promedio_All")].Performance.mean()
-    media_def=df_prot[(df_prot.competition==comps) & (df_prot.position==position_padre) & (df_prot.prototipo_id=="Promedio_All")].Performance_DEFENSA.mean()
-    media_con =df_prot[(df_prot.competition==comps) & (df_prot.position==position_padre) & (df_prot.prototipo_id=="Promedio_All")].Performance_CONSTRUCCION.mean()
-    media_ata=df_prot[(df_prot.competition==comps) & (df_prot.position==position_padre) & (df_prot.prototipo_id=="Promedio_All")].Performance_ATAQUE.mean()
-    media_par=df_prot[(df_prot.competition==comps) & (df_prot.position==position_padre) & (df_prot.prototipo_id=="Promedio_All")].Performance_PARADAS.mean()
+    df_prot_comp=df_prot[(df_prot.competition==df[df.competition_desc==comps].competition.values[0]) & (df_prot.position==position_padre)]
+    media_per=df_prot[(df_prot.competition==df[df.competition_desc==comps].competition.values[0]) & (df_prot.position==position_padre) & (df_prot.prototipo_id=="Promedio_All")].Performance.mean()
+    media_def=df_prot[(df_prot.competition==df[df.competition_desc==comps].competition.values[0]) & (df_prot.position==position_padre) & (df_prot.prototipo_id=="Promedio_All")].Performance_DEFENSA.mean()
+    media_con =df_prot[(df_prot.competition==df[df.competition_desc==comps].competition.values[0]) & (df_prot.position==position_padre) & (df_prot.prototipo_id=="Promedio_All")].Performance_CONSTRUCCION.mean()
+    media_ata=df_prot[(df_prot.competition==df[df.competition_desc==comps].competition.values[0]) & (df_prot.position==position_padre) & (df_prot.prototipo_id=="Promedio_All")].Performance_ATAQUE.mean()
+    media_par=df_prot[(df_prot.competition==df[df.competition_desc==comps].competition.values[0]) & (df_prot.position==position_padre) & (df_prot.prototipo_id=="Promedio_All")].Performance_PARADAS.mean()
     d,a,b,c=div2.columns(4)
     d.metric("**PER**", "{:.0f}".format(df[df.playerId.isin(tss.playerId.unique())]["Performance_{}".format(position_padre)].mean()), "{:.0%}".format((df[df.playerId.isin(tss.playerId.unique())]["Performance_{}".format(position_padre)].mean() - media_per) / media_per),border=True,
              help="Mide el rendimiento o nivel neto de un jugador. Comparación respecto a la media de la posición. BASE: Adecuación del jugador seleccionado (si existe). Sino: media del top {} por {}".format(number,criterios))
@@ -558,8 +566,8 @@ def main():
     kpi1,_,kpi2,_,kpi3,_,kpi4,_,_,kpi5 = st.columns([.22,.03,.22,.03,.22,.03,.22,.01,.01,.5])
     try:
         a, b, c= kpi1.columns([.15,.4,.4])
-        b.image(dim_player[dim_player.playerName==df_own.playerName.values[0]].logo.values[0],width=70,
-                caption=f"{dim_player[dim_player.playerName==df_own.playerName.values[0]].playerName.values[0]}")
+        b.image(df[df.playerName==df_own.playerName.values[0]].logo.values[0],width=70,
+                caption=f"{df[df.playerName==df_own.playerName.values[0]].playerName.values[0]}")
         a.image(logo, width=80)
     
         c.metric(accr2.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[0]][criterio].values[0]),
@@ -568,8 +576,8 @@ def main():
         pass
     try:
         a, b, c= kpi2.columns([.15,.4,.4])
-        b.image(dim_player[dim_player.playerName==df_own.playerName.values[1]].logo.values[0],width=70,
-                caption=f"{dim_player[dim_player.playerName==df_own.playerName.values[1]].playerName.values[0]}")
+        b.image(df[df.playerName==df_own.playerName.values[1]].logo.values[0],width=70,
+                caption=f"{df[df.playerName==df_own.playerName.values[1]].playerName.values[0]}")
         a.image(logo, width=80)
         
         c.metric(accr2.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[1]][criterio].values[0]),
@@ -580,8 +588,8 @@ def main():
     try:
 
         a, b, c= kpi3.columns([.15,.4,.4])
-        b.image(dim_player[dim_player.playerName==df_own.playerName.values[2]].logo.values[0],width=70,
-                caption=f"{dim_player[dim_player.playerName==df_own.playerName.values[2]].playerName.values[0]}")
+        b.image(df[df.playerName==df_own.playerName.values[2]].logo.values[0],width=70,
+                caption=f"{df[df.playerName==df_own.playerName.values[2]].playerName.values[0]}")
         a.image(logo,width=80)
        
         c.metric(accr2.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[2]][criterio].values[0]))
@@ -591,8 +599,8 @@ def main():
     try:
 
         a,b, c= kpi4.columns([.15,.4,.4])
-        b.image(dim_player[dim_player.playerName==df_own.playerName.values[3]].logo.values[0],width=70,
-                caption=f"{dim_player[dim_player.playerName==df_own.playerName.values[3]].playerName.values[0]}")
+        b.image(df[df.playerName==df_own.playerName.values[3]].logo.values[0],width=70,
+                caption=f"{df[df.playerName==df_own.playerName.values[3]].playerName.values[0]}")
         a.image(logo,width=80)
         c.metric(accr2.upper(),"{:.0f}".format(tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0]),"{:.0%}".format((tss[criterio].mean() - tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0])/ tabla_adecuacion[tabla_adecuacion.playerName_id==df_own.playerName_id.values[3]][criterio].values[0]))
     except:
@@ -607,7 +615,8 @@ def main():
                            })
     else:
         medias_prot = df_prot_comp.groupby(by="prototipo_id",as_index=False).Performance.mean()
-        medias_prot = pd.merge(medias_prot,dim_prototipo,how='inner',left_on="prototipo_id",right_on="nivel_id")
+        medias_prot["prototipo_id2"] = medias_prot.prototipo_id.str.replace(" ","_")
+        medias_prot = pd.merge(medias_prot,dim_prototipo,how='inner',left_on="prototipo_id2",right_on="nivel_id")
         kpi5.dataframe(medias_prot.sort_values(by='orden')[['nivel_desc','Performance','nivel_desc_long']],
                        height=120,hide_index=True,use_container_width=True,
                        column_config={
@@ -616,7 +625,8 @@ def main():
     kpi5.caption("Doble click sobre celda para ver texto completo")
     
     div3a.metric("**Mejor Rol - {}**".format(criterios.replace(f"_{position_padre}","").upper()),"{}".format(tabla_adecuacion.groupby(by="rol_desc")[criterio].mean().sort_values(ascending=False).index.values[0]))
-    div3b.metric("**Mejor Jugador - Rol Top**".format(criterios.replace(f"_{position_padre}","").upper()),"{}".format(tabla_adecuacion[tabla_adecuacion.rol_desc==tabla_adecuacion.groupby(by="rol_desc")[criterio].mean().sort_values(ascending=False).index.values[0]].sort_values(by=criterio,ascending=False).playerName.values[0]))
+    div3b.metric("**Mejor Jugador**".format(criterios.replace(f"_{position_padre}","").upper()),
+                 "{}".format(tabla_adecuacion.sort_values(by=criterio,ascending=False).playerName.values[0]))
     
     
     st.divider()
@@ -637,8 +647,8 @@ def main():
             )
     
     list_comparar = ["Competiciones Seleccionadas",
-                     "Competición del Jugador - {}".format(dim_team[dim_team.teamName==tabla_adecuacion[tabla_adecuacion.playerName_id==select_pl].teamName.values[0]].competition.values[0]),
-                     "Competición del Equipo - {}".format(dim_team[dim_team.teamName==teams].competition.values[0])]
+                     "Competición del Jugador - {}".format(df[df.teamName==tabla_adecuacion[tabla_adecuacion.playerName_id==select_pl].teamName.values[0]].competition_desc.values[0]),
+                     "Competición del Equipo - {}".format(dim_team[dim_team.teamName==teams].competition_desc.values[0])]
     
     ligas_comp = col7sel.selectbox("Selecciona Competición a Comparar", list_comparar)
     
@@ -647,8 +657,6 @@ def main():
         col6.pyplot(pp.sradar(select_pl,df,df_prot_comp,"Promedio_All", "Nivel Top_All",
                            list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].medida.unique()),
                            position_padre,
-                           dim_player,
-                           dim_team,
                            seasons,
                            list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].fancy_name_esp.unique())
                            
@@ -659,8 +667,6 @@ def main():
                            "Promedio_All", "Nivel Top_All",
                            list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].medida.unique()),
                            position_padre,
-                           dim_player,
-                           dim_team,
                            seasons,
                            list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].fancy_name_esp.unique())
             )
@@ -669,20 +675,20 @@ def main():
     col7.pyplot(pp.pitch_maker(select_pl,df,roles[roles.cluster==df[(df.playerName_id==select_pl) & (df.season==seasons)]["cluster_{}".format(position_padre)].values[0]].rol_desc.values[0],seasons,'purple'))
     if select_col_sc not in indicadores:
         if ligas_comp==list_comparar[1]:
-            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==dim_team[dim_team.teamName==tabla_adecuacion[tabla_adecuacion.playerName==select_pl].teamName.values[0]].competition.values[0]) | (df.playerName==select_pl)], select_pl,
+            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==df[df.teamName==tabla_adecuacion[tabla_adecuacion.playerName==select_pl].teamName.values[0]].competition.values[0]) | (df.playerName==select_pl)], select_pl,
                                                      df_cols[df_cols.fancy_name_esp==select_col_sc].medida.values[0],
-            "rol_desc",position_padre
+            "rol_desc","cluster_{}".format(position_padre),position_padre
                         ))
         elif ligas_comp==list_comparar[-1]:
-            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==dim_team[dim_team.teamName==teams].competition.values[0]) | (df.playerName==select_pl)], select_pl,
+            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==df[df.teamName==teams].competition.values[0]) | (df.playerName==select_pl)], select_pl,
                                                      df_cols[df_cols.fancy_name_esp==select_col_sc].medida.values[0],
-            "rol_desc",position_padre
+            "rol_desc","cluster_{}".format(position_padre),position_padre
                         ))
         else:
             
             col8.plotly_chart(pp.scatter_xaxisv1_plotly(df, select_pl,
                                                      df_cols[df_cols.fancy_name_esp==select_col_sc].medida.values[0],
-            "rol_desc",position_padre
+            "rol_desc","cluster_{}".format(position_padre),position_padre
                         ))
         
         
@@ -690,25 +696,25 @@ def main():
     else:
         
         if ligas_comp==list_comparar[1]:
-            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==dim_team[dim_team.teamName==tabla_adecuacion[tabla_adecuacion.playerName==select_pl].teamName.values[0]].competition.values[0]) | (df.playerName==select_pl)], select_pl,
+            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==df[df.teamName==tabla_adecuacion[tabla_adecuacion.playerName==select_pl].teamName.values[0]].competition.values[0]) | (df.playerName==select_pl)], select_pl,
                                                      indicadores[select_col_sc],
-            "rol_desc",position_padre
+            "rol_desc","cluster_{}".format(position_padre),position_padre
                         ))
         elif ligas_comp==list_comparar[-1]:
-            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==dim_team[dim_team.teamName==teams].competition.values[0]) | (df.playerName_id==select_pl)], select_pl,
+            col8.plotly_chart(pp.scatter_xaxisv1_plotly(df[(df.competition==df[df.teamName==teams].competition.values[0]) | (df.playerName_id==select_pl)], select_pl,
                                                      indicadores[select_col_sc],
-            "rol_desc",position_padre
+            "rol_desc","cluster_{}".format(position_padre),position_padre
                         ))
         else:
             
             col8.plotly_chart(pp.scatter_xaxisv1_plotly(df, select_pl,
                                                      indicadores[select_col_sc],
-            "rol_desc",position_padre
+            "rol_desc","cluster_{}".format(position_padre),position_padre
                         ))
     
     
     if ligas_comp==list_comparar[1]:
-        col8.pyplot(pp.plot_percentiles(select_pl, df[(df.competition==dim_team[dim_team.teamName==tabla_adecuacion[tabla_adecuacion.playerName_id==select_pl].teamName.values[0]].competition.values[0]) | (df.playerName==select_pl)], 
+        col8.pyplot(pp.plot_percentiles(select_pl, df[(df.competition==df[df.teamName==tabla_adecuacion[tabla_adecuacion.playerName_id==select_pl].teamName.values[0]].competition.values[0]) | (df.playerName==select_pl)], 
                             df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)], 
                             seasons,
                             "Performance_{}".format(position_padre),
@@ -716,7 +722,7 @@ def main():
                     )
                     )
     elif ligas_comp==list_comparar[-1]:
-        col8.pyplot(pp.plot_percentiles(select_pl, df[(df.competition==dim_team[dim_team.teamName==teams].competition.values[0]) | (df.playerName_id==select_pl)], 
+        col8.pyplot(pp.plot_percentiles(select_pl, df[(df.competition==df[df.teamName==teams].competition.values[0]) | (df.playerName_id==select_pl)], 
                             df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)], 
                             seasons,
                             "Performance_{}".format(position_padre),
@@ -747,14 +753,14 @@ def main():
             "Mostrar comparación de:",
             tuple(df.playerName_id.unique()))
     list_comparar = ["Competiciones Seleccionadas",
-                     "Competición del Jugador - {}".format(dim_team[dim_team.teamName==tabla_adecuacion[tabla_adecuacion.playerName_id==select_pl1].teamName.values[0]].competition.values[0]),
+                     "Competición del Jugador - {}".format(df[df.teamName==tabla_adecuacion[tabla_adecuacion.playerName_id==select_pl1].teamName.values[0]].competition.values[0]),
                      "Competición del Equipo - {}".format(dim_team[dim_team.teamName==teams].competition.values[0])]
     
    
     if "Radar" in option_viz:
         select_pl2 = col9.selectbox(
                 "y:",
-                tuple(pd.concat([df[df.teamName==teams],df]).drop_duplicates(subset='playerId',keep='first').playerName_id.unique()
+                tuple(pd.concat([df[(df.teamName==teams) & (df.playerName!=select_pl1)],df]).drop_duplicates(subset='playerId',keep='first').playerName_id.unique()
                       )
                 )
     col6, col7= st.columns([1.2,.8])
@@ -764,7 +770,7 @@ def main():
     if "Radar" in option_viz:
         col6.pyplot(pp.sradar_comp(select_pl1,select_pl2,df,df_prot_comp,"Promedio_All", "Nivel Top_All",
                        list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].medida.unique()), 
-                       position_padre, dim_player,dim_team,
+                       position_padre,
                        seasons,seasons,
                   nombres=list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].fancy_name_esp.unique())
         )
@@ -887,8 +893,10 @@ def main():
                     "Selecciona categoría",options,horizontal =True)
         if option==options[0]:
             opt="rol_desc"
+            opt2="cluster_{}".format(position_padre)
         else:
             opt="nivel_id_{}".format(position_padre)
+            opt2="nivel_id_{}".format(position_padre)
         #col4.markdown("""### :black_circle: Dashboard por Jugador""")
     
         
@@ -902,7 +910,7 @@ def main():
         y_col = df_cols[df_cols['fancy_name_esp'] == selectcol[1]]['medida'].values[0]
         
         # Dibujar gráfico
-        fig = pp.scatterplot_plotly(df_filtrado, select_pl, df_cols, x_col, y_col, opt,teams,position_padre)
+        fig = pp.scatterplot_plotly(df_filtrado, select_pl, df_cols, x_col, y_col, opt,opt2,teams,position_padre)
         c6,c7 = st.columns([.6,.4])    
         # Mostrar en columna
         c6.plotly_chart(fig, use_container_width=True)
@@ -912,6 +920,7 @@ def main():
             tss[tss.playerName_id==select_pl].index.values[0],
             x_col,
             "rol_desc",
+            "cluster_{}".format(position_padre),
             teams,
             selectcol[0]
             ))
@@ -919,6 +928,7 @@ def main():
             tss[tss.playerName_id==select_pl].index.values[0],
             y_col,
             "rol_desc",
+            "cluster_{}".format(position_padre),
             teams,
             selectcol[1],
             False

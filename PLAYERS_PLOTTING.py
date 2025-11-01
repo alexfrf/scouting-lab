@@ -213,19 +213,23 @@ def scatter_xaxisv1(df,select_pl,col,cluster_col,criterio):
 
 
 
-def scatter_xaxisv1_plotly(df, select_pl, col, cluster_col,position_padre):
+def scatter_xaxisv1_plotly(df, select_pl, col, cluster_col, orden, position_padre):
     
 
     fig = go.Figure()
     df[col]=df[col].fillna(0)
     colors = ['red', 'purple', 'turquoise', 'orange']
     y_offsets = [.98, .96, .94, .92]
+    
+    legend= {}
+    for r in sorted(range(1,int(df[orden].max())+1)):
+        legend[r]=df[df[orden]==r][cluster_col].values[0]
 
     # Guarda trazas del jugador seleccionado para añadirlas al final
     selected_traces = []
 
-    for i, color, y_val in zip(df[cluster_col].unique(), colors, y_offsets):
-        cluster_df = df[df[cluster_col] == i]
+    for i, color, y_val in zip(legend, colors, y_offsets):
+        cluster_df = df[df[orden] == i]
         select_row = cluster_df[cluster_df.playerName == select_pl]
         rest_df = cluster_df.drop(select_row.index)
 
@@ -237,7 +241,7 @@ def scatter_xaxisv1_plotly(df, select_pl, col, cluster_col,position_padre):
             marker=dict(size=16, color=color, line=dict(color='black', width=1)),
             hovertext=rest_df['playerName'],
             hoverinfo='text',
-            name=f'{i}'
+            name=f'{legend[i]}'
         ))
 
         # Línea de media
@@ -285,52 +289,59 @@ def scatter_xaxisv1_plotly(df, select_pl, col, cluster_col,position_padre):
 
     return fig
 
-def boxplot_xaxisv1_plotly(df, select_pl, col, cluster_col, team,posiciones,criterios, position_padre):
+def boxplot_xaxisv1_plotly(df, select_pl, col, cluster_col, orden, team,posiciones,criterios, position_padre):
     import plotly.graph_objects as go
 
     fig = go.Figure()
     colors = ['red', 'purple', 'turquoise', 'orange']
+    legend= {}
+    for r in sorted(range(1,int(df[df[orden]>0][orden].max())+1)):
+        if df[df[orden]==r].shape[0]>0:
+            legend[r]=df[df[orden]==r][cluster_col].values[0]
+        else:
+            legend[r]=None
     selected_trace = None
 
-    for i, color in zip(sorted(df[cluster_col].unique()), colors):
-        cluster_df = df[df[cluster_col] == i]
-        select_row = cluster_df[cluster_df.index == select_pl]
-        team_rows = cluster_df[cluster_df["teamName"] == team]
-
-        # Boxplot del cluster
-        fig.add_trace(go.Box(
-            y=cluster_df[col],
-            name=f'{i}',
-            marker_color=color,
-            line=dict(width=1),
-            boxmean='sd',
-            boxpoints=False,
-            hoverinfo='skip'
-        ))
-
-        # Puntos del equipo propio (sin añadir a la leyenda)
-        if not team_rows.empty:
-            fig.add_trace(go.Scatter(
-                x=[f'{i}'] * len(team_rows),
-                y=team_rows[col],
-                mode='markers',
-                marker=dict(size=10, color=color, symbol='circle', line=dict(color='black', width=1)),
-                hovertext=team_rows['playerName'],
-                hoverinfo='text',
-                showlegend=False
+    for i, color in zip(legend, colors):
+        cluster_df = df[df[orden] == i]
+        if cluster_df.shape[0]>0:
+            select_row = cluster_df[cluster_df.index == select_pl]
+            team_rows = cluster_df[cluster_df["teamName"] == team]
+    
+            # Boxplot del cluster
+            fig.add_trace(go.Box(
+                y=cluster_df[col],
+                name=f'{legend[i]}',
+                marker_color=color,
+                line=dict(width=1),
+                boxmean='sd',
+                boxpoints=False,
+                hoverinfo='skip'
             ))
-        
-        if not select_row.empty:
-                selected_trace = go.Scatter(
-                    x=[f'{i}'],
-                    y=select_row[col],
-                    mode='markers+text',
-                    marker=dict(size=14, color='lime', symbol='x', line=dict(color='black', width=1)),
-                    text=select_row['playerName'].values,
-                    textposition="top center",
-                    name=f'{select_row["playerName"].values[0]}',
+    
+            # Puntos del equipo propio (sin añadir a la leyenda)
+            if not team_rows.empty:
+                fig.add_trace(go.Scatter(
+                    x=[f'{legend[i]}'] * len(team_rows),
+                    y=team_rows[col],
+                    mode='markers',
+                    marker=dict(size=10, color=color, symbol='circle', line=dict(color='black', width=1)),
+                    hovertext=team_rows['playerName'],
+                    hoverinfo='text',
                     showlegend=False
-                )
+                ))
+            
+            if not select_row.empty:
+                    selected_trace = go.Scatter(
+                        x=[f'{legend[i]}'],
+                        y=select_row[col],
+                        mode='markers+text',
+                        marker=dict(size=14, color='lime', symbol='x', line=dict(color='black', width=1)),
+                        text=select_row['playerName'].values,
+                        textposition="top center",
+                        name=f'{select_row["playerName"].values[0]}',
+                        showlegend=False
+                    )
 
     if selected_trace:
         fig.add_trace(selected_trace)
@@ -365,55 +376,64 @@ def boxplot_xaxisv1_plotly(df, select_pl, col, cluster_col, team,posiciones,crit
 
     return fig
 
-def boxplot_xaxisv2_plotly(df, select_pl, col, cluster_col, team, yaxis_title="", show_legend=True):
+def boxplot_xaxisv2_plotly(df, select_pl, col, cluster_col, orden, team, yaxis_title="", show_legend=True):
 
 
     fig = go.Figure()
     
     colors = ['red', 'purple', 'turquoise', 'orange']
+    
+    legend= {}
+    for r in sorted(range(1,int(df[orden].max())+1)):
+        if df[df[orden]==r].shape[0]>0:
+            legend[r]=df[df[orden]==r][cluster_col].values[0]
+        else:
+            legend[r]=None
     selected_trace = None
 
-    for i, color in zip(sorted(df[cluster_col].dropna().unique()), colors):
-        cluster_df = df[df[cluster_col] == i]
-        select_row = cluster_df[cluster_df.index == select_pl]
-        team_rows = cluster_df[cluster_df["teamName"] == team]
-
-        # Boxplot del cluster
-        fig.add_trace(go.Box(
-            y=cluster_df[col],
-            name=str(i),
-            marker_color=color,
-            line=dict(width=1),
-            boxmean='sd',
-            boxpoints=False,
-            showlegend=show_legend,
-            hoverinfo='skip'
-        ))
-
-        # Puntos del equipo propio (sin leyenda)
-        if not team_rows.empty:
-            fig.add_trace(go.Scatter(
-                x=[str(i)] * len(team_rows),
-                y=team_rows[col],
-                mode='markers',
-                marker=dict(size=10, color=color, symbol='circle', line=dict(color='black', width=1)),
-                hovertext=team_rows['playerName'],
-                hoverinfo='text',
-                showlegend=False
+    for i, color in zip(legend, colors):
+        cluster_df = df[df[orden] == i]
+        if cluster_df.shape[0]>0:
+            
+            select_row = cluster_df[cluster_df.index == select_pl]
+            team_rows = cluster_df[cluster_df["teamName"] == team]
+    
+            # Boxplot del cluster
+            fig.add_trace(go.Box(
+                y=cluster_df[col],
+                name=str(legend[i]),
+                marker_color=color,
+                line=dict(width=1),
+                boxmean='sd',
+                boxpoints=False,
+                showlegend=show_legend,
+                hoverinfo='skip'
             ))
-
-        # Jugador seleccionado
-        if not select_row.empty:
-            selected_trace = go.Scatter(
-                x=[str(i)],
-                y=select_row[col],
-                mode='markers+text',
-                marker=dict(size=14, color='lime', symbol='x', line=dict(color='black', width=1)),
-                text=select_row['playerName'].values,
-                textposition="top center",
-                name=str(select_row['playerName'].values[0]),
-                showlegend=False
-            )
+    
+            # Puntos del equipo propio (sin leyenda)
+            if not team_rows.empty:
+                fig.add_trace(go.Scatter(
+                    x=[str(legend[i])] * len(team_rows),
+                    y=team_rows[col],
+                    mode='markers',
+                    marker=dict(size=10, color=color, symbol='circle', line=dict(color='black', width=1)),
+                    hovertext=team_rows['playerName'],
+                    hoverinfo='text',
+                    showlegend=False
+                ))
+    
+            # Jugador seleccionado
+            if not select_row.empty:
+                selected_trace = go.Scatter(
+                    x=[str(legend[i])],
+                    y=select_row[col],
+                    mode='markers+text',
+                    marker=dict(size=14, color='lime', symbol='x', line=dict(color='black', width=1)),
+                    text=select_row['playerName'].values,
+                    textposition="top center",
+                    name=str(select_row['playerName'].values[0]),
+                    showlegend=False
+                )
 
     if selected_trace:
         fig.add_trace(selected_trace)
@@ -434,12 +454,13 @@ def boxplot_xaxisv2_plotly(df, select_pl, col, cluster_col, team, yaxis_title=""
         ),
         yaxis=dict(title=yaxis_title),
         xaxis=dict(title=""),
-        margin=dict(t=40, r=40, b=40, l=40)
+        margin=dict(t=40, r=40, b=40, l=40),
+        legend_title=cluster_col.title().split("_")[0].strip()
     )
 
     return fig
 
-def sradar(player,data,comp,mins, maxs,col_radar, position_padre,dim_player,dim_team,s=None,nombres=None):
+def sradar(player,data,comp,mins, maxs,col_radar, position_padre,s=None,nombres=None):
     err=0
     rc = data[(data['playerName_id']==player) & (data.season==s)]
     
@@ -447,15 +468,15 @@ def sradar(player,data,comp,mins, maxs,col_radar, position_padre,dim_player,dim_
     perf = 'Performance_{}'.format(position_padre)
     #comp = rc.iloc[0]['Competicion']
     
-    img = dim_player[dim_player.playerId==data[(data['playerName_id']==player) & (data.season==s)].playerId.values[0]].logo.values[0]
+    img = data[data.playerId==data[(data['playerName_id']==player) & (data.season==s)].playerId.values[0]].logo.values[0]
     
-    img2 = dim_team[dim_team.teamName==data[data.playerName_id==player].teamName.values[0]].img_logo.values[0]
+    img2 = data[data.teamName==data[data.playerName_id==player].teamName.values[0]].img_logo.values[0]
     
     title = ['playerName','teamName','competition_desc',
              "minutes",perf]
     
     try:
-        response = requests.get("{}".format(dim_team[dim_team.teamName==data[data.playerName_id==player].teamName.values[0]].img_logo.values[0]))
+        response = requests.get("{}".format(data[data.teamName==data[data.playerName_id==player].teamName.values[0]].img_logo.values[0]))
         img = Image.open(BytesIO(response.content))
         
     except:
@@ -463,7 +484,7 @@ def sradar(player,data,comp,mins, maxs,col_radar, position_padre,dim_player,dim_
         print('Could not load team photo')
         pass
     try: 
-        response = requests.get("{}".format(dim_player[dim_player.playerName_id==player].logo.values[0]))
+        response = requests.get("{}".format(data[data.playerName_id==player].logo.values[0]))
         img2 = Image.open(BytesIO(response.content))
         
     except:
@@ -610,7 +631,7 @@ def sradar(player,data,comp,mins, maxs,col_radar, position_padre,dim_player,dim_
     plt.figtext(0.1, 0.09, '{:.0%}'.format(data[(data.playerName_id==player) & (data.season==s)]["DIST_{}_DEFENSA_Promedio_All".format(position_padre)].values[0]),
         fontsize=20,weight='bold',
         ha='center', va='center',
-        bbox=dict(facecolor=cmap(norm(data[(data.playerName_id==player) & (data.season==s)]["DIST_{}_DEFENSA_Promedio_top6".format(position_padre)].values[0])), alpha=0.6, edgecolor='none',boxstyle='round,pad=0.2'))
+        bbox=dict(facecolor=cmap(norm(data[(data.playerName_id==player) & (data.season==s)]["DIST_{}_DEFENSA_Promedio_All".format(position_padre)].values[0])), alpha=0.6, edgecolor='none',boxstyle='round,pad=0.2')) #top6
     plt.figtext(0.15, 0.09, '{:.0%}'.format(data[(data.playerName_id==player) & (data.season==s)]["DIST_{}_CONSTRUCCION_Promedio_All".format(position_padre)].values[0]),
         fontsize=20,weight='bold',
         ha='center', va='center',
@@ -630,7 +651,7 @@ def sradar(player,data,comp,mins, maxs,col_radar, position_padre,dim_player,dim_
         plt.figtext(0.9, 0.09, '{:.0%}'.format(data[(data.playerName_id==player) & (data.season==s)]["DIST_{}_{}_Top_All".format(position_padre,metrica)].values[0]),
         fontsize=20,weight='bold',
         ha='center', va='center',
-        bbox=dict(facecolor=cmap(norm(data[(data.playerName_id==player) & (data.season==s)]["DIST_{}_{}_Top_top6".format(position_padre,metrica)])), alpha=0.6, edgecolor='none',boxstyle='round,pad=0.2'))
+        bbox=dict(facecolor=cmap(norm(data[(data.playerName_id==player) & (data.season==s)]["DIST_{}_{}_Top_All".format(position_padre,metrica)])), alpha=0.6, edgecolor='none',boxstyle='round,pad=0.2')) #top6
     plt.figtext(0.8, 0.09, '{:.0%}'.format(data[(data.playerName_id==player) & (data.season==s)]["DIST_{}_DEFENSA_Top_All".format(position_padre,metrica)].values[0]),
         fontsize=20,weight='bold',
         ha='center', va='center',
@@ -669,8 +690,9 @@ def sradar(player,data,comp,mins, maxs,col_radar, position_padre,dim_player,dim_
                     add_image(star, fig1, left=0.01, bottom=0.91, width=0.02,height=0.02)
                     add_image(star, fig1, left=0.03, bottom=0.91, width=0.02,height=0.02)
                     add_image(star, fig1, left=0.05, bottom=0.91, width=0.02,height=0.02)
-    if rc.index[0][-1] > comp[comp.prototipo_id=="Promedio_top6"].Performance.values[0]:
-        add_image(ci6, fig1, left=0.02, bottom=0.86, width=0.04,height=0.04)
+    #if rc.index[0][-1] > comp[comp.prototipo_id=="Promedio_All"].Performance.values[0]: #top6
+    #    add_image(ci6, fig1, left=0.02, bottom=0.86, width=0.04,height=0.04)
+    
     try:
         
         add_image(plt.imshow(img2), fig1, left=0, bottom=0.93, width=0.08,height=0.08)
@@ -684,7 +706,7 @@ def sradar(player,data,comp,mins, maxs,col_radar, position_padre,dim_player,dim_
     return fig1;
 
     
-def sradar_comp(player1,player2,data,comp,mins, maxs,col_radar, position_padre, dim_player,dim_team,s1=None,s2=None,nombres=None):
+def sradar_comp(player1,player2,data,comp,mins, maxs,col_radar, position_padre,s1=None,s2=None,nombres=None):
     err=0
     rc1 = data[(data['playerName_id']==player1) & (data.season==s1)]
     rc2 = data[(data['playerName_id']==player2) & (data.season==s2)]
@@ -695,7 +717,7 @@ def sradar_comp(player1,player2,data,comp,mins, maxs,col_radar, position_padre, 
     
         
     try:
-        response = requests.get("{}".format(dim_team[dim_team.teamName==data[data.playerName_id==player1].teamName.values[0]].img_logo.values[0]))
+        response = requests.get("{}".format(data[data.teamName==data[data.playerName_id==player1].teamName.values[0]].img_logo.values[0]))
         img = Image.open(BytesIO(response.content))
         
     except:
@@ -704,7 +726,7 @@ def sradar_comp(player1,player2,data,comp,mins, maxs,col_radar, position_padre, 
         pass
     
     try:
-        response = requests.get("{}".format(dim_team[dim_team.teamName==data[data.playerName_id==player2].teamName.values[0]].img_logo.values[0]))
+        response = requests.get("{}".format(data[data.teamName==data[data.playerName_id==player2].teamName.values[0]].img_logo.values[0]))
         img2 = Image.open(BytesIO(response.content))
         
     except:
@@ -1143,7 +1165,7 @@ def plot_percentiles(player,data,medidas,s,perf,posiciones,mins=None,maxs=None):
     #for cat, indices in cat_medidas.items():
     #    y_medio = np.mean([y[i] for i in indices])  # y[] ya tiene la coordenada vertical de cada barra
     #    ax.text(-37, y_medio, cat.upper(), fontsize=20, fontweight='bold', va='center', ha='right', color='black')
-        
+    plt.figtext(0.5,0.05,'Datos normalizados por 90 minutos\nMétricas no porcentuales ajustadas a la posesión del equipo (salvo xG y xA)',ha='center',size=11)    
     return fig2 
 
 def mapa_calor_prototipos(df_jugadores, df_prototipos, prototipos, medidas, accro, referencia, s=False, es_jugador=True):
@@ -1226,7 +1248,7 @@ def mapa_calor_prototipos(df_jugadores, df_prototipos, prototipos, medidas, accr
         plt.title(f"{referencia} ({s} - {ref_row.teamName.values[0]}) | DISTANCIA vs. Prototipos, por Medida\n", fontsize=10, weight="bold")
     else:
         plt.title("DISTANCIA entre Prototipos, por Medida\n", fontsize=10, weight="bold")
-
+    plt.figtext(0.5,0.0000001,'Datos normalizados por 90 minutos. Métricas no porcentuales ajustadas a la posesión del equipo (salvo xG y xA)',ha='center',size=8)
     plt.xlabel("")
     plt.ylabel("")
     plt.tight_layout()
@@ -1283,18 +1305,28 @@ def pitch_maker(player,data,cluster,s,color='purple'):
                 bbox=dict(facecolor=color, edgecolor='black', boxstyle='round', pad=0.2, linewidth=0, alpha=0.2))
     return fig
 
-def scatterplot_plotly(df, select_pl, df_cols,x_metric, y_metric,how,teams,position_padre):
+def scatterplot_plotly(df, select_pl, df_cols,x_metric, y_metric,how,orden,teams,position_padre):
 
 
     # Paleta de colores personalizada
     if how=="rol_desc":
         colores = ['red', 'purple', 'turquoise', 'orange']
         tit = "Rol"
-        roles = df[how].unique()
+        roles = sorted(range(1,int(df[orden].max())+1))
+
+        legend= {}
+        for r in sorted(range(1,int(df[orden].max())+1)):
+            if df[df[orden]==r].shape[0]>0:
+                legend[r]=df[df[orden]==r][how].values[0]
+            else:
+                legend[r]=None
     else:
         colores = ['coral', 'yellow', 'lightgreen', 'forestgreen']
         tit="Prototipo"
         roles = ['Bajo',"Promedio","Alto","Top"]
+        legend= {}
+        for r in roles:
+            legend[r]=r
 
     # Detectar si son porcentajes
     x_is_pct = x_metric.endswith('_pct')
@@ -1307,50 +1339,50 @@ def scatterplot_plotly(df, select_pl, df_cols,x_metric, y_metric,how,teams,posit
     # Crear figura
     fig = go.Figure()
 
-    for rol, color in zip(roles, colores):
-        df_rol = df[df[how] == rol]
-
-        # Texto de hover personalizado con % si aplica
-        hovertemplate = "<b>%{text}</b><br>"
-        hovertemplate += f"X: %{{x:.0%}}<br>" if x_is_pct else "X: %{x:.2f}<br>"
-        hovertemplate += f"Y: %{{y:.0%}}<extra></extra>" if y_is_pct else "Y: %{y:.2f}<extra></extra>"
-
-        # Scatter normal
-        fig.add_trace(go.Scatter(
-            x=df_rol[x_metric],
-            y=df_rol[y_metric],
-            mode='markers',
-            marker=dict(color=color, size=10, line=dict(width=1, color='DarkSlateGrey')),
-            name=rol,
-            text=df_rol['playerName'] + ' - ' + df_rol['teamName'],
-            hovertemplate=hovertemplate,
-            showlegend=True
-        ))
-
-        # Solo etiquetas visibles para jugadores del equipo
-        df_equipo = df_rol[df_rol['teamName'] == teams]
-        fig.add_trace(go.Scatter(
-            x=df_equipo[x_metric],
-            y=df_equipo[y_metric],
-            mode='text',
-            text=df_equipo['playerName'],
-            textposition='top center',
-            textfont=dict(size=14, color='black', weight='bold'),
-            hoverinfo='skip',
-            showlegend=False
-        ))
-        
-        df_equipo = df_rol[df_rol['playerName_id'] == select_pl]
-        fig.add_trace(go.Scatter(
-            x=df_equipo[x_metric],
-            y=df_equipo[y_metric],
-            mode='text',
-            text=df_equipo['playerName'],
-            textposition='top center',
-            textfont=dict(size=14, color='black', weight='bold'),
-            hoverinfo='skip',
-            showlegend=False
-        ))
+    for rol, color in zip(legend, colores):
+        df_rol = df[df[orden] == rol]
+        if df_rol.shape[0]>0:
+            # Texto de hover personalizado con % si aplica
+            hovertemplate = "<b>%{text}</b><br>"
+            hovertemplate += f"X: %{{x:.0%}}<br>" if x_is_pct else "X: %{x:.2f}<br>"
+            hovertemplate += f"Y: %{{y:.0%}}<extra></extra>" if y_is_pct else "Y: %{y:.2f}<extra></extra>"
+    
+            # Scatter normal
+            fig.add_trace(go.Scatter(
+                x=df_rol[x_metric],
+                y=df_rol[y_metric],
+                mode='markers',
+                marker=dict(color=color, size=10, line=dict(width=1, color='DarkSlateGrey')),
+                name=legend[rol],
+                text=df_rol['playerName'] + ' - ' + df_rol['teamName'],
+                hovertemplate=hovertemplate,
+                showlegend=True
+            ))
+    
+            # Solo etiquetas visibles para jugadores del equipo
+            df_equipo = df_rol[df_rol['teamName'] == teams]
+            fig.add_trace(go.Scatter(
+                x=df_equipo[x_metric],
+                y=df_equipo[y_metric],
+                mode='text',
+                text=df_equipo['playerName'],
+                textposition='top center',
+                textfont=dict(size=14, color='black', weight='bold'),
+                hoverinfo='skip',
+                showlegend=False
+            ))
+            
+            df_equipo = df_rol[df_rol['playerName_id'] == select_pl]
+            fig.add_trace(go.Scatter(
+                x=df_equipo[x_metric],
+                y=df_equipo[y_metric],
+                mode='text',
+                text=df_equipo['playerName'],
+                textposition='top center',
+                textfont=dict(size=14, color='black', weight='bold'),
+                hoverinfo='skip',
+                showlegend=False
+            ))
 
     # Actualizar layout con ejes en formato %
     fig.update_layout(
