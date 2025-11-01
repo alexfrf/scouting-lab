@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: mi-app-streamlit
-    env: python
-    runtime: python-3.12.3
-    buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run Portada.py --server.port=$PORT --server.address=0.0.0.0
