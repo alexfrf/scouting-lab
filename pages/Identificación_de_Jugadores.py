@@ -486,7 +486,7 @@ def main():
                     how="left",on=["cluster"]
                     )
     
-    div1,div2,div2b,div3a,div3b = st.columns([0.3,.4,.1,.3,0.2])
+    div1,div2,div2b,div3a,div3b = st.columns([0.3,.5,.05,.3,0.2])
     
      
     col1, col2= st.columns([0.65,0.35]) 
