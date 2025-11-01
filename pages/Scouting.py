@@ -167,7 +167,7 @@ def main():
     config=get_params()
     
     st.set_page_config(layout="wide", page_title="ScoutingLAB")
-    st.sidebar.title("🏁 Identificación")
+    st.sidebar.title("🏁 Scouting")
     st.markdown("""
     <style>
         body {
