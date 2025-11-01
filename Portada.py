@@ -11,6 +11,7 @@ import json
 from PIL import Image
 import UTILS_BBDD as ub
 import plotly.graph_objects as go
+from sqlalchemy import create_engine, text
 
 st.set_page_config(page_title="ScoutingLAB - Portada", layout="wide")
 @st.cache_resource
@@ -23,9 +24,13 @@ def get_params():
         params = json.load(f)
     return params
 
-def read_query(sql):
+
+def read_query(sql: str) -> pd.DataFrame:
     engine = get_conn()
-    return pd.read_sql(sql, engine)
+    with engine.connect() as conn:
+        result = conn.execute(text(sql))  # text() convierte el SQL en objeto SQLAlchemy
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    return df
 
 @st.cache_data(ttl=86400)  # 86400 segundos = 24 horas
 def get_data():
