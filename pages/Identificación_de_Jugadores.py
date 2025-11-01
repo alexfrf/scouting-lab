@@ -33,49 +33,59 @@ def read_query(sql: str) -> pd.DataFrame:
     return df
 
 def filtros_sidebar(df):
-    comp_opts = list(df[df.country_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","country_id"]).competition_desc.unique())
+    # Filtrado por países
+    df_filtrado = df[df.country_id.isin(["ESP","ENG","ITA","FRA","GER"])]
+    
+    comp_opts = list(df_filtrado.sort_values(by=["tier_num","country_id"]).competition_desc.unique())
     season_opts = sorted(list(df.season.unique()))
 
-    # Inicialización de session_state
+    # Inicialización session_state
     if "comps" not in st.session_state:
         st.session_state.comps = comp_opts[0]
     if "seasons" not in st.session_state:
         st.session_state.seasons = season_opts[-1]
     if "teams" not in st.session_state:
-        # Se define más abajo con team_opts
         st.session_state.teams = None
 
-    # Select de competición
-    selected_comp = st.sidebar.selectbox("Selecciona Competición", comp_opts, index=comp_opts.index(st.session_state.comps))
+    # Select competición
+    selected_comp = st.sidebar.selectbox(
+        "Selecciona Competición",
+        comp_opts,
+        index=comp_opts.index(st.session_state.comps)
+    )
     if selected_comp != st.session_state.comps:
         st.session_state.comps = selected_comp
-        st.session_state.teams = None  # reinicia el equipo seleccionado
-        st.rerun()
+        st.session_state.teams = None  # reinicia equipo
 
-
-    # Select de temporada
-    selected_season = st.sidebar.selectbox("Selecciona Temporada", season_opts, index=season_opts.index(st.session_state.seasons))
+    # Select temporada
+    selected_season = st.sidebar.selectbox(
+        "Selecciona Temporada",
+        season_opts,
+        index=season_opts.index(st.session_state.seasons)
+    )
     if selected_season != st.session_state.seasons:
         st.session_state.seasons = selected_season
-        st.session_state.teams = None  # reinicia el equipo seleccionado
-        st.rerun()
+        st.session_state.teams = None  # reinicia equipo
 
+    # Lista equipos filtrada
+    team_opts = sorted(
+        df_filtrado[
+            (df_filtrado.competition_desc == st.session_state.comps) &
+            (df_filtrado.season == st.session_state.seasons)
+        ].teamName.unique()
+    )
 
-    # Lista de equipos válida para esos filtros
-    team_opts = sorted(df[
-        (df.competition_desc == st.session_state.comps) &
-        (df.season == st.session_state.seasons)
-    ].teamName.unique())
-
+    # Inicializa equipo si no existe
     if st.session_state.teams not in team_opts:
         st.session_state.teams = team_opts[0] if team_opts else None
-        st.rerun()
 
-
-    selected_team = st.sidebar.selectbox("Selecciona Equipo", options=team_opts, index=team_opts.index(st.session_state.teams))
-    if selected_team != st.session_state.teams:
-        st.session_state.teams = selected_team
-        st.rerun()
+    # Select equipo
+    selected_team = st.sidebar.selectbox(
+        "Selecciona Equipo",
+        options=team_opts,
+        index=team_opts.index(st.session_state.teams) if st.session_state.teams in team_opts else 0
+    )
+    st.session_state.teams = selected_team
 
     return st.session_state.comps, st.session_state.seasons, st.session_state.teams
 # -----------------------------
