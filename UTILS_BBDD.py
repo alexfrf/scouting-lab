@@ -12,25 +12,24 @@ import streamlit as st
 import os
 
 def get_secret(key, subkey):
+    """
+    Obtiene un secreto desde:
+    1️⃣ st.secrets (cuando se ejecuta en Streamlit Cloud)
+    2️⃣ variables de entorno (Render, Docker, etc.)
+    """
     try:
-        # Primero intento con st.secrets (Streamlit Cloud)
         return st.secrets[key][subkey]
     except (KeyError, AttributeError):
-        # Si falla, intento leer variable de entorno (para Docker en Railway, DigitalOcean, etc)
         env_key = f"{key.upper()}__{subkey.upper()}"
         return os.environ.get(env_key)
 
 def get_conn():
-    user = st.secrets["db_watford"]["user"]
-    password = st.secrets["db_watford"]["password"]
-    host = st.secrets["db_watford"]["host"]
-    port = st.secrets["db_watford"]["port"]
-    database = st.secrets["db_watford"]["database"]
-    #user = os.environ.get("DB_WATFORD__USER")
-    #password = os.environ.get("DB_WATFORD__PASSWORD")
-    #host = os.environ.get("DB_WATFORD__HOST")
-    #port = os.environ.get("DB_WATFORD__PORT")
-    #database = os.environ.get("DB_WATFORD__DATABASE")
+    user = get_secret("db_watford", "user")
+    password = get_secret("db_watford", "password")
+    host = get_secret("db_watford", "host")
+    port = get_secret("db_watford", "port")
+    database = get_secret("db_watford", "database")
+
     engine = create_engine(
         f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{database}"
     )
