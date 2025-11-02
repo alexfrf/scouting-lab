@@ -964,7 +964,7 @@ def main():
         if not filtered.empty:
             idx_sp = filtered.index.values[0]
         else:
-            idx_sp = None
+            idx_sp = df_filtrado.index.values[0]
 
         
         c7.plotly_chart(pp.boxplot_xaxisv2_plotly(df_filtrado,
