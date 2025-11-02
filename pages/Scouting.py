@@ -959,10 +959,13 @@ def main():
         c6,c7 = st.columns([.6,.4])    
         # Mostrar en columna
         c6.plotly_chart(fig, use_container_width=True)
-        
+        if tss[tss.playerName_id==select_pl].shape[0]>0:
+            idx_sp = tss[tss.playerName_id==select_pl].index.values[0]
+        else:
+            idx_sp = 0
         
         c7.plotly_chart(pp.boxplot_xaxisv2_plotly(df_filtrado,
-            tss[tss.playerName_id==select_pl].index.values[0],
+            idx_sp,
             x_col,
             "rol_desc",
             "cluster_{}".format(position_padre),
@@ -970,7 +973,7 @@ def main():
             selectcol[0]
             ))
         c7.plotly_chart(pp.boxplot_xaxisv2_plotly(df_filtrado,
-            tss[tss.playerName_id==select_pl].index.values[0],
+            idx_sp,
             y_col,
             "rol_desc",
             "cluster_{}".format(position_padre),
