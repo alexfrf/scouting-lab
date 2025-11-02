@@ -959,7 +959,7 @@ def main():
         c6,c7 = st.columns([.6,.4])    
         # Mostrar en columna
         c6.plotly_chart(fig, use_container_width=True)
-        filtered = tss[tss.playerName_id == select_pl]
+        filtered = tss[tss.playerName_id == select_pl1]
 
         if not filtered.empty:
             idx_sp = filtered.index.values[0]
