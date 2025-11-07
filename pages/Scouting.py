@@ -327,7 +327,7 @@ def main():
         min_age = int(df['age'].min())
         max_age = int(df['age'].max())
         selected_age_default = st.session_state.get("selected_age", max_age)
-        selected_age = st.sidebar.slider("Edad Máxima", min_age, max_age, value=selected_age_default)
+        selected_age = st.sidebar.slider("Edad Máxima", min_age, 50, value=selected_age_default)
         st.session_state["selected_age"] = selected_age
     
     if 'height' in cols_disponibles and posiciones == "GK":
@@ -491,7 +491,7 @@ def main():
      
     col1, col2= st.columns([0.65,0.35]) 
     columnas_tabla= [i for i in columnas_tabla if "competition" not in i and "playerName_id" not in i]
-    ts=col1.dataframe(tabla_adecuacion[columnas_tabla], 
+    ts=col1.dataframe(tabla_adecuacion[columnas_tabla].head(number), 
                    use_container_width=True, hide_index=True,
                    column_config={
                        "playerName":"Jugador",
@@ -521,7 +521,9 @@ def main():
     tabla_adecuacion = tabla_adecuacion.drop_duplicates(subset=['playerId','season'],keep='first')
     df=pd.merge(df,tabla_adecuacion[["playerId","season"]+[i for i in tabla_adecuacion.columns if i not in df.columns]],
                 how='left',on=["playerId","season"])
+    #tteams = tabla_adecuacion[tabla_adecuacion.teamName==teams]
     filtered_df = tabla_adecuacion.iloc[ts.selection.rows]
+    #filtered_df = filtered_df.drop_duplicates(subset=['playerId','season'],keep='first')
     if filtered_df.shape[0]==0:
         tss=tabla_adecuacion.head(number)
     else:
@@ -970,24 +972,26 @@ def main():
         else:
             idx_sp = None
             
-        
-        c7.plotly_chart(pp.boxplot_xaxisv2_plotly(df_filtrado,
-            idx_sp,
-            x_col,
-            "rol_desc",
-            "cluster_{}".format(position_padre),
-            teams,
-            selectcol[0]
-            ))
-        c7.plotly_chart(pp.boxplot_xaxisv2_plotly(df_filtrado,
-            idx_sp,
-            y_col,
-            "rol_desc",
-            "cluster_{}".format(position_padre),
-            teams,
-            selectcol[1],
-            False
-            ))
+        try:
+            c7.plotly_chart(pp.boxplot_xaxisv2_plotly(df_filtrado,
+                idx_sp,
+                x_col,
+                "rol_desc",
+                "cluster_{}".format(position_padre),
+                teams,
+                selectcol[0]
+                ))
+            c7.plotly_chart(pp.boxplot_xaxisv2_plotly(df_filtrado,
+                idx_sp,
+                y_col,
+                "rol_desc",
+                "cluster_{}".format(position_padre),
+                teams,
+                selectcol[1],
+                False
+                ))
+        except:
+            st.warning("Debe deseleccionarse el jugador en la tabla de Resultado")
     
 # Ejecutar
 if __name__ == "__main__":
