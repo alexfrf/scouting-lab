@@ -1311,6 +1311,7 @@ def pitch_maker(player,data,cluster,s,color='purple'):
                 bbox=dict(facecolor=color, edgecolor='black', boxstyle='round', pad=0.2, linewidth=0, alpha=0.2))
     return fig
 
+
 def scatterplot_plotly(df, select_pl, df_cols, x_metric, y_metric, how, orden, teams, position_padre):
 
     # Paleta de colores y leyenda según tipo
@@ -1325,13 +1326,19 @@ def scatterplot_plotly(df, select_pl, df_cols, x_metric, y_metric, how, orden, t
         roles = ['Bajo', "Promedio", "Alto", "Top"]
         legend = {r: r for r in roles}
 
-    # Detectar si son porcentajes
+    # Detectar si son porcentajes (más robusto)
     x_is_pct = ('%' in x_metric.lower()) or ('pct' in x_metric.lower())
     y_is_pct = ('%' in y_metric.lower()) or ('pct' in y_metric.lower())
 
-    # Títulos bonitos para ejes
-    x_title = df_cols.loc[df_cols.medida == x_metric, "fancy_name_esp"].values[0]
-    y_title = df_cols.loc[df_cols.medida == y_metric, "fancy_name_esp"].values[0]
+    # Títulos bonitos para ejes (si no encuentra, usar nombre raw)
+    x_title = df_cols.loc[df_cols.medida == x_metric, "fancy_name_esp"].values[0] if (df_cols.medida == x_metric).any() else x_metric
+    y_title = df_cols.loc[df_cols.medida == y_metric, "fancy_name_esp"].values[0] if (df_cols.medida == y_metric).any() else y_metric
+
+    # Formatos para hover y ticks
+    x_fmt = "%{x:.1%}" if x_is_pct else "%{x:.2f}"
+    y_fmt = "%{y:.1%}" if y_is_pct else "%{y:.2f}"
+    x_tickformat = ".0%" if x_is_pct else None
+    y_tickformat = ".0%" if y_is_pct else None
 
     # Crear figura
     fig = go.Figure()
@@ -1341,16 +1348,10 @@ def scatterplot_plotly(df, select_pl, df_cols, x_metric, y_metric, how, orden, t
         if df_rol.empty:
             continue
 
-        # Hover dinámico con títulos reales y formato %
-        hovertemplate = (
-            "<b>%{text}</b><br>"
-            f"{x_title}: %{{x:.1%}}<br>" if x_is_pct else
-            f"{x_title}: %{{x:.2f}}<br>"
-        )
-        hovertemplate += (
-            f"{y_title}: %{{y:.1%}}<extra></extra>" if y_is_pct else
-            f"{y_title}: %{{y:.2f}}<extra></extra>"
-        )
+        # hovertemplate dinámico mostrando el nombre del jugador (text) y títulos de ejes
+        hovertemplate = "<b>%{text}</b><br>"
+        hovertemplate += f"{x_title}: {x_fmt}<br>"
+        hovertemplate += f"{y_title}: {y_fmt}<extra></extra>"
 
         # Scatter de todos los jugadores del grupo
         fig.add_trace(go.Scatter(
@@ -1359,12 +1360,13 @@ def scatterplot_plotly(df, select_pl, df_cols, x_metric, y_metric, how, orden, t
             mode='markers',
             marker=dict(color=color, size=10, line=dict(width=1, color='DarkSlateGrey')),
             name=legend[rol],
-            text=df_rol['playerName'] + ' - ' + df_rol['teamName'],
+            # text debe ser el nombre del jugador para que aparezca al posar
+            text=df_rol['playerName'],
             hovertemplate=hovertemplate,
             showlegend=True
         ))
 
-        # Etiquetas del equipo seleccionado
+        # Etiquetas visibles para jugadores del equipo (solo texto, sin hover)
         df_equipo = df_rol[df_rol['teamName'] == teams]
         if not df_equipo.empty:
             fig.add_trace(go.Scatter(
@@ -1378,7 +1380,7 @@ def scatterplot_plotly(df, select_pl, df_cols, x_metric, y_metric, how, orden, t
                 showlegend=False
             ))
 
-        # Jugador seleccionado (resaltado)
+        # Jugador seleccionado (resaltado) — muestra hover con su nombre
         df_sel = df_rol[df_rol['playerName_id'] == select_pl]
         if not df_sel.empty:
             fig.add_trace(go.Scatter(
@@ -1389,7 +1391,7 @@ def scatterplot_plotly(df, select_pl, df_cols, x_metric, y_metric, how, orden, t
                 text=df_sel['playerName'],
                 textposition='top center',
                 textfont=dict(size=14, color='black', weight='bold'),
-                hoverinfo='skip',
+                hovertemplate=hovertemplate,   # mostrar nombre y valores también aquí
                 showlegend=False
             ))
 
@@ -1408,9 +1410,9 @@ def scatterplot_plotly(df, select_pl, df_cols, x_metric, y_metric, how, orden, t
     )
 
     # Ejes en formato %
-    if x_is_pct:
-        fig.update_xaxes(tickformat=".0%")
-    if y_is_pct:
-        fig.update_yaxes(tickformat=".0%")
+    if x_tickformat:
+        fig.update_xaxes(tickformat=x_tickformat)
+    if y_tickformat:
+        fig.update_yaxes(tickformat=y_tickformat)
 
     return fig
