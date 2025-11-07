@@ -377,63 +377,66 @@ def boxplot_xaxisv1_plotly(df, select_pl, col, cluster_col, orden, team,posicion
     return fig
 
 def boxplot_xaxisv2_plotly(df, select_pl, col, cluster_col, orden, team, yaxis_title="", show_legend=True):
-
     fig = go.Figure()
     colors = ['red', 'purple', 'turquoise', 'orange']
     legend = {}
 
+    # Detectar si la métrica es un porcentaje
+    is_percent = ('%' in col.lower()) or ('pct' in col.lower())
+
     for r in sorted(range(1, int(df[orden].max()) + 1)):
-        if df[df[orden] == r].shape[0] > 0:
-            legend[r] = df[df[orden] == r][cluster_col].values[0]
-        else:
-            legend[r] = None
+        subset = df[df[orden] == r]
+        legend[r] = subset[cluster_col].values[0] if not subset.empty else None
 
     selected_trace = None
 
     for i, color in zip(legend, colors):
         cluster_df = df[df[orden] == i]
-        if cluster_df.shape[0] > 0:
-            
-            select_row = cluster_df[cluster_df.index == select_pl]
-            team_rows = cluster_df[cluster_df["teamName"] == team]
+        if cluster_df.empty:
+            continue
 
-            # Boxplot del cluster
-            fig.add_trace(go.Box(
-                y=cluster_df[col],
-                name=str(legend[i]),
-                marker_color=color,
-                line=dict(width=1),
-                boxmean='sd',
-                boxpoints=False,
-                showlegend=show_legend,
-                hoverinfo='skip'
+        select_row = cluster_df[cluster_df.index == select_pl]
+        team_rows = cluster_df[cluster_df["teamName"] == team]
+
+        # Boxplot del cluster
+        fig.add_trace(go.Box(
+            y=cluster_df[col],
+            name=str(legend[i]),
+            marker_color=color,
+            line=dict(width=1),
+            boxmean='sd',
+            boxpoints=False,
+            showlegend=show_legend,
+            hoverinfo='skip'
+        ))
+
+        # Puntos del equipo propio
+        if not team_rows.empty:
+            fig.add_trace(go.Scatter(
+                x=[str(legend[i])] * len(team_rows),
+                y=team_rows[col],
+                mode='markers',
+                marker=dict(size=10, color=color, symbol='circle', line=dict(color='black', width=1)),
+                text=team_rows['playerName'],
+                hovertemplate=f"<b>%{{text}}</b><br>{yaxis_title}: %{{y:.1%}}<extra></extra>"
+                if is_percent else f"<b>%{{text}}</b><br>{yaxis_title}: %{{y:.2f}}<extra></extra>",
+                showlegend=False
             ))
 
-            # Puntos del equipo propio
-            if not team_rows.empty:
-                fig.add_trace(go.Scatter(
-                    x=[str(legend[i])] * len(team_rows),
-                    y=team_rows[col],
-                    mode='markers',
-                    marker=dict(size=10, color=color, symbol='circle', line=dict(color='black', width=1)),
-                    text=team_rows['playerName'],
-                    hovertemplate=f"<b>%{{text}}</b><br>{yaxis_title}: %{{y:.2f}}<extra></extra>",
-                    showlegend=False
-                ))
-
-            # Jugador seleccionado
-            if not select_row.empty:
-                selected_trace = go.Scatter(
-                    x=[str(legend[i])],
-                    y=select_row[col],
-                    mode='markers+text',
-                    marker=dict(size=14, color='lime', symbol='x', line=dict(color='black', width=1)),
-                    text=select_row['playerName'].values,
-                    textposition="top center",
-                    name=str(select_row['playerName'].values[0]),
-                    hovertemplate=f"<b>%{{text}}</b><br>{yaxis_title}: %{{y:.2f}}<extra></extra>",
-                    showlegend=False
-                )
+        # Jugador seleccionado
+        if not select_row.empty:
+            selected_trace = go.Scatter(
+                x=[str(legend[i])],
+                y=select_row[col],
+                mode='markers+text',
+                marker=dict(size=14, color='lime', symbol='x', line=dict(color='black', width=1)),
+                text=select_row['playerName'].values,
+                textposition="top center",
+                name=str(select_row['playerName'].values[0]),
+                hovertemplate=f"<b>%{{text}}</b><br>{yaxis_title}: %{{y:.1%}}<extra></extra>"
+                if is_percent else f"<b>%{{text}}</b><br>{yaxis_title}: %{{y:.2f}}<extra></extra>",
+                showlegend=False
+            )
 
     if selected_trace:
         fig.add_trace(selected_trace)
@@ -452,7 +455,10 @@ def boxplot_xaxisv2_plotly(df, select_pl, col, cluster_col, orden, team, yaxis_t
             x=1,
             title=f"{cluster_col.capitalize()}" if show_legend else ""
         ),
-        yaxis=dict(title=yaxis_title),
+        yaxis=dict(
+            title=yaxis_title,
+            tickformat=".0%" if is_percent else None  # eje Y también en formato %
+        ),
         xaxis=dict(title=""),
         margin=dict(t=40, r=40, b=40, l=40),
         legend_title=cluster_col.title().split("_")[0].strip()
@@ -1305,74 +1311,62 @@ def pitch_maker(player,data,cluster,s,color='purple'):
                 bbox=dict(facecolor=color, edgecolor='black', boxstyle='round', pad=0.2, linewidth=0, alpha=0.2))
     return fig
 
-def scatterplot_plotly(df, select_pl, df_cols,x_metric, y_metric,how,orden,teams,position_padre):
+def scatterplot_plotly(df, select_pl, df_cols, x_metric, y_metric, how, orden, teams, position_padre):
 
-
-    # Paleta de colores personalizada
-    if how=="rol_desc":
+    # Paleta de colores y leyenda según tipo
+    if how == "rol_desc":
         colores = ['red', 'purple', 'turquoise', 'orange']
         tit = "Rol"
-        roles = sorted(range(1,int(df[orden].max())+1))
-
-        legend= {}
-        for r in sorted(range(1,int(df[orden].max())+1)):
-            if df[df[orden]==r].shape[0]>0:
-                legend[r]=df[df[orden]==r][how].values[0]
-            else:
-                legend[r]=None
+        roles = sorted(range(1, int(df[orden].max()) + 1))
+        legend = {r: df[df[orden] == r][how].values[0] if df[df[orden] == r].shape[0] > 0 else None for r in roles}
     else:
         colores = ['coral', 'yellow', 'lightgreen', 'forestgreen']
-        tit="Prototipo"
-        roles = ['Bajo',"Promedio","Alto","Top"]
-        legend= {}
-        for r in roles:
-            legend[r]=r
+        tit = "Prototipo"
+        roles = ['Bajo', "Promedio", "Alto", "Top"]
+        legend = {r: r for r in roles}
 
     # Detectar si son porcentajes
-    x_is_pct = x_metric.endswith('_pct')
-    y_is_pct = y_metric.endswith('_pct')
+    x_is_pct = ('%' in x_metric.lower()) or ('pct' in x_metric.lower())
+    y_is_pct = ('%' in y_metric.lower()) or ('pct' in y_metric.lower())
 
-    # Formatear títulos
-    x_title = df_cols[df_cols.medida == x_metric].fancy_name_esp.values[0]
-    y_title = df_cols[df_cols.medida == y_metric].fancy_name_esp.values[0]
+    # Títulos bonitos para ejes
+    x_title = df_cols.loc[df_cols.medida == x_metric, "fancy_name_esp"].values[0]
+    y_title = df_cols.loc[df_cols.medida == y_metric, "fancy_name_esp"].values[0]
 
     # Crear figura
     fig = go.Figure()
 
     for rol, color in zip(legend, colores):
         df_rol = df[df[orden] == rol]
-        if df_rol.shape[0]>0:
-            # Texto de hover personalizado con % si aplica
-            hovertemplate = "<b>%{text}</b><br>"
-            hovertemplate += f"X: %{{x:.0%}}<br>" if x_is_pct else "X: %{x:.2f}<br>"
-            hovertemplate += f"Y: %{{y:.0%}}<extra></extra>" if y_is_pct else "Y: %{y:.2f}<extra></extra>"
-    
-            # Scatter normal
-            fig.add_trace(go.Scatter(
-                x=df_rol[x_metric],
-                y=df_rol[y_metric],
-                mode='markers',
-                marker=dict(color=color, size=10, line=dict(width=1, color='DarkSlateGrey')),
-                name=legend[rol],
-                text=df_rol['playerName'] + ' - ' + df_rol['teamName'],
-                hovertemplate=hovertemplate,
-                showlegend=True
-            ))
-    
-            # Solo etiquetas visibles para jugadores del equipo
-            df_equipo = df_rol[df_rol['teamName'] == teams]
-            fig.add_trace(go.Scatter(
-                x=df_equipo[x_metric],
-                y=df_equipo[y_metric],
-                mode='text',
-                text=df_equipo['playerName'],
-                textposition='top center',
-                textfont=dict(size=14, color='black', weight='bold'),
-                hoverinfo='skip',
-                showlegend=False
-            ))
-            
-            df_equipo = df_rol[df_rol['playerName_id'] == select_pl]
+        if df_rol.empty:
+            continue
+
+        # Hover dinámico con títulos reales y formato %
+        hovertemplate = (
+            "<b>%{text}</b><br>"
+            f"{x_title}: %{{x:.1%}}<br>" if x_is_pct else
+            f"{x_title}: %{{x:.2f}}<br>"
+        )
+        hovertemplate += (
+            f"{y_title}: %{{y:.1%}}<extra></extra>" if y_is_pct else
+            f"{y_title}: %{{y:.2f}}<extra></extra>"
+        )
+
+        # Scatter de todos los jugadores del grupo
+        fig.add_trace(go.Scatter(
+            x=df_rol[x_metric],
+            y=df_rol[y_metric],
+            mode='markers',
+            marker=dict(color=color, size=10, line=dict(width=1, color='DarkSlateGrey')),
+            name=legend[rol],
+            text=df_rol['playerName'] + ' - ' + df_rol['teamName'],
+            hovertemplate=hovertemplate,
+            showlegend=True
+        ))
+
+        # Etiquetas del equipo seleccionado
+        df_equipo = df_rol[df_rol['teamName'] == teams]
+        if not df_equipo.empty:
             fig.add_trace(go.Scatter(
                 x=df_equipo[x_metric],
                 y=df_equipo[y_metric],
@@ -1384,11 +1378,26 @@ def scatterplot_plotly(df, select_pl, df_cols,x_metric, y_metric,how,orden,teams
                 showlegend=False
             ))
 
-    # Actualizar layout con ejes en formato %
+        # Jugador seleccionado (resaltado)
+        df_sel = df_rol[df_rol['playerName_id'] == select_pl]
+        if not df_sel.empty:
+            fig.add_trace(go.Scatter(
+                x=df_sel[x_metric],
+                y=df_sel[y_metric],
+                mode='markers+text',
+                marker=dict(size=16, color='lime', symbol='x', line=dict(width=1, color='black')),
+                text=df_sel['playerName'],
+                textposition='top center',
+                textfont=dict(size=14, color='black', weight='bold'),
+                hoverinfo='skip',
+                showlegend=False
+            ))
+
+    # Layout general
     fig.update_layout(
         title={
             'text': f'Dispersión de {position_padre} Destacados por {tit}   |   X: {x_title}, Y: {y_title}',
-            'x': 0.5,  # <-- Centrado horizontal
+            'x': 0.5,
             'xanchor': 'center',
             'font': dict(size=16)
         },
@@ -1398,6 +1407,7 @@ def scatterplot_plotly(df, select_pl, df_cols,x_metric, y_metric,how,orden,teams
         height=700
     )
 
+    # Ejes en formato %
     if x_is_pct:
         fig.update_xaxes(tickformat=".0%")
     if y_is_pct:
