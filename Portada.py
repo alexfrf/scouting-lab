@@ -327,6 +327,7 @@ with kpi4:
         (dim_modelo_categoria.categoria_id == 3)
     ].modelo_desc.values[0]), unsafe_allow_html=True)
 help_uni="UNICIDAD: nº y % de equipos de la misma liga que comparten modelo de juego -general o por fase-"
+help_tot="UNICIDAD: nº y % de equipos de las 5 Grandes Ligas que comparten modelo de juego"
 kpi1.write("")
 kpi1.metric("**Unicidad - ESTRUCTURA**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.cluster_ESTRUCTURA==df_own.cluster_ESTRUCTURA.values[0]) & (df_team.competition_desc==comps)].shape[0] / df_team[(df_team.competition_desc==comps)].shape[0]),
           "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.cluster_ESTRUCTURA==df_own.cluster_ESTRUCTURA.values[0]) & (df_team.competition_desc==comps)].shape[0]-1,comps.upper()),
@@ -346,10 +347,44 @@ kpi4.metric("**Unicidad - ATAQUE**".format(comps.upper()), "{:.0%}".format(df_te
           border=True, delta_color="off",help=help_uni)
 
 kpi1.write("")
-kpi1,kpi2,kpi3=st.columns([.3,.3,.3])
-kpi2.metric("**UNICIDAD DEL MODELO**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition_desc==comps)].shape[0] / df_team[(df_team.competition_desc==comps)].shape[0]),
+st.divider()
+kpi1,kpi2,kpi3,kpi4=st.columns([.25,.25,.25,.25])
+kpi1.metric("**UNICIDAD DEL MODELO - {}**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition_desc==comps)].shape[0] / df_team[(df_team.competition_desc==comps)].shape[0]),
           "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition_desc==comps)].shape[0]-1,comps.upper()),
-          border=True, delta_color="off",help=help_uni)
+          border=True, delta_color="off",help=help_uni.replace(" -general o por fase-","").strip())
+if df_team[(df_team.teamName!=teams) & (df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition_desc==comps)].shape[0]>0:
+    if df_team[(df_team.teamName!=teams) & (df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition_desc==comps)].shape[0]<3:
+        kpi2.dataframe(df_team[(df_team.teamName!=teams) & (df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition_desc==comps)][["img_logo","teamName"]],
+                  column_config={
+                      "teamName":"Equipo",
+                      "img_logo": st.column_config.ImageColumn(""
+                  )},
+                  height=50,use_container_width=True, hide_index=True)
+    else:
+        kpi2.dataframe(df_team[(df_team.teamName!=teams) & (df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition_desc==comps)][["img_logo","teamName"]],
+                  column_config={
+                      "teamName":"Equipo",
+                      "img_logo": st.column_config.ImageColumn(""
+                  )},
+                  height=125,use_container_width=True, hide_index=True)
+kpi3.metric("**UNICIDAD DEL MODELO - 5 Grandes Ligas**", "{:.0%}".format(df_team[(df_team.modelo_id==df_own.modelo_id.values[0]) &  (df_team.tier_num==1) & (df_team.country_id.isin(["ESP","ENG","GER","ITA","FRA"]))].shape[0] / df_team[(df_team.tier_num==1) & (df_team.country_id.isin(["ESP","ENG","GER","ITA","FRA"]))].shape[0]),
+          "= que {:.0f} Equipo(s) en 5 Grandes Ligas".format(df_team[(df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.tier_num==1) & (df_team.country_id.isin(["ESP","ENG","GER","ITA","FRA"]))].shape[0]-1 if df_team[df_team.teamName==teams].tier_num.values[0]==1 else df_team[(df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.tier_num==1) & (df_team.country_id.isin(["ESP","ENG","GER","ITA","FRA"]))].shape[0]),
+          border=True, delta_color="off",help=help_tot)
+if df_team[(df_team.teamName!=teams) & (df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.tier_num==1) & (df_team.country_id.isin(["ESP","ENG","GER","ITA","FRA"]))].shape[0]>0:
+    if df_team[(df_team.teamName!=teams) & (df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.tier_num==1) & (df_team.country_id.isin(["ESP","ENG","GER","ITA","FRA"]))].shape[0]<3:
+        kpi4.dataframe(df_team[(df_team.teamName!=teams) & (df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.tier_num==1) & (df_team.country_id.isin(["ESP","ENG","GER","ITA","FRA"]))][["img_logo","teamName","competition_desc"]],
+                  column_config={
+                      "teamName":"Equipo",
+                      "img_logo": st.column_config.ImageColumn(""
+                  )},
+                  height=50,use_container_width=True, hide_index=True)
+    else:
+        kpi4.dataframe(df_team[(df_team.teamName!=teams) & (df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.tier_num==1) & (df_team.country_id.isin(["ESP","ENG","GER","ITA","FRA"]))][["img_logo","teamName","competition_desc"]],
+                  column_config={
+                      "teamName":"Equipo",
+                      "img_logo": st.column_config.ImageColumn(""
+                  )},
+                  height=125,use_container_width=True, hide_index=True)
 sisi=[.37,.37,.26]
 
 st.divider()
