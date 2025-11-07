@@ -87,7 +87,7 @@ def boxplot_xaxisv2_plotly_teams(df, select_pl, col, cluster_col, yaxis_title=""
                 mode='markers',
                 marker=dict(size=8, color='black', symbol='circle'),
                 text=comp_in_cluster['teamName'],
-                hovertemplate="<b>%{text}</b><br>Valor: %{y:.2f}<extra></extra>",
+                hovertemplate="<b>%{text}</b><br>%{y:.2%}<extra></extra>",
                 showlegend=False
             ))
 
@@ -100,7 +100,7 @@ def boxplot_xaxisv2_plotly_teams(df, select_pl, col, cluster_col, yaxis_title=""
             mode='markers',
             marker=dict(size=14, color='lime', symbol='x', line=dict(color='black', width=1)),
             text=select_row['teamName'],
-            hovertemplate="<b>%{text}</b><br>Valor: %{y:.2f}<extra></extra>",
+            hovertemplate="<b>%{text}</b><br>%{y:.2%}<extra></extra>",
             name=select_row['teamName'].values[0],
             showlegend=True
         ))

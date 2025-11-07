@@ -378,26 +378,25 @@ def boxplot_xaxisv1_plotly(df, select_pl, col, cluster_col, orden, team,posicion
 
 def boxplot_xaxisv2_plotly(df, select_pl, col, cluster_col, orden, team, yaxis_title="", show_legend=True):
 
-
     fig = go.Figure()
-    
     colors = ['red', 'purple', 'turquoise', 'orange']
-    
-    legend= {}
-    for r in sorted(range(1,int(df[orden].max())+1)):
-        if df[df[orden]==r].shape[0]>0:
-            legend[r]=df[df[orden]==r][cluster_col].values[0]
+    legend = {}
+
+    for r in sorted(range(1, int(df[orden].max()) + 1)):
+        if df[df[orden] == r].shape[0] > 0:
+            legend[r] = df[df[orden] == r][cluster_col].values[0]
         else:
-            legend[r]=None
+            legend[r] = None
+
     selected_trace = None
 
     for i, color in zip(legend, colors):
         cluster_df = df[df[orden] == i]
-        if cluster_df.shape[0]>0:
+        if cluster_df.shape[0] > 0:
             
             select_row = cluster_df[cluster_df.index == select_pl]
             team_rows = cluster_df[cluster_df["teamName"] == team]
-    
+
             # Boxplot del cluster
             fig.add_trace(go.Box(
                 y=cluster_df[col],
@@ -409,19 +408,19 @@ def boxplot_xaxisv2_plotly(df, select_pl, col, cluster_col, orden, team, yaxis_t
                 showlegend=show_legend,
                 hoverinfo='skip'
             ))
-    
-            # Puntos del equipo propio (sin leyenda)
+
+            # Puntos del equipo propio
             if not team_rows.empty:
                 fig.add_trace(go.Scatter(
                     x=[str(legend[i])] * len(team_rows),
                     y=team_rows[col],
                     mode='markers',
                     marker=dict(size=10, color=color, symbol='circle', line=dict(color='black', width=1)),
-                    hovertext=team_rows['playerName'],
-                    hoverinfo='text',
+                    text=team_rows['playerName'],
+                    hovertemplate=f"<b>%{{text}}</b><br>{yaxis_title}: %{{y:.2f}}<extra></extra>",
                     showlegend=False
                 ))
-    
+
             # Jugador seleccionado
             if not select_row.empty:
                 selected_trace = go.Scatter(
@@ -432,6 +431,7 @@ def boxplot_xaxisv2_plotly(df, select_pl, col, cluster_col, orden, team, yaxis_t
                     text=select_row['playerName'].values,
                     textposition="top center",
                     name=str(select_row['playerName'].values[0]),
+                    hovertemplate=f"<b>%{{text}}</b><br>{yaxis_title}: %{{y:.2f}}<extra></extra>",
                     showlegend=False
                 )
 
