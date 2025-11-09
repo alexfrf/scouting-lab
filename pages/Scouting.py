@@ -33,7 +33,7 @@ def init_session_state():
         "criterios": None,
         "number": 50,
         "selected_min": 1000,
-        "selected_age": 99,
+        "selected_age": 50,
         "selected_hei": 0,
         "select_league_style": "Personalizado"
     }
@@ -269,6 +269,14 @@ def main():
             df = df[(df['position'] == posiciones) | (df['position2'] == posiciones) | (df['position3'] == posiciones) | ((df.position=="DMF") & (df.teamName==teams))]
         elif posiciones=="DMF":
             df = df[(df['position'] == posiciones) | (df['position2'] == posiciones) | (df['position3'] == posiciones) | ((df.position=="MF") & (df.teamName==teams))]
+        elif posiciones =="RB":
+            df = df[(df['position'] == posiciones) | (df['position2'] == posiciones) | (df['position3'] == posiciones) | ((df.position=="RB") & (df.teamName==teams))]
+        elif posiciones =="LB":
+            df = df[(df['position'] == posiciones) | (df['position2'] == posiciones) | (df['position3'] == posiciones) | ((df.position=="LB") & (df.teamName==teams))]
+        elif posiciones =="AMF":
+            df = df[(df['position'] == posiciones) | (df['position2'] == posiciones) | (df['position3'] == posiciones) | ((df.position=="AMF") & (df.teamName==teams))]
+        elif posiciones =="RW" or posiciones == "LW":
+            df = df[(df['position'] == "RW") | (df['position2'] == "LW")]
         position_padre = dim_position[dim_position.position_data == posiciones].position_padre.values[0]
         df = df[df[f"cluster_{position_padre}"].notna()]
         df['cluster'] = df[f"cluster_{position_padre}"]
