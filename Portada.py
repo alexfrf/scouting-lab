@@ -36,7 +36,7 @@ def read_query(sql: str) -> pd.DataFrame:
 def get_data():
     conn=get_conn()
     
-    df_team = read_query("select * from fact_ag_team_season where season = '2024-2025'")
+    df_team = read_query("select ss.*,ds.actual_sn,ds.anterior_sn,anterior2_sn from fact_ag_team_season ss left join dim_season ds on ss.season=ds.season")
     df_team=df_team.drop_duplicates()
     df_team= ub.clean_df(df_team)
     #dim_team=pd.read_sql("""select * from dim_team""",conn)
@@ -148,9 +148,9 @@ df_team,df_cols_team,dim_medida_team,dim_modelo_categoria= get_data()
 # Sidebar
 st.sidebar.title("🏁 Portada")
 st.sidebar.subheader("Filtros")
-
-comp_opts = list(df_team[df_team.country_id.isin(["ESP","ENG","ITA","FRA","GER"])].sort_values(by=["tier_num","country_id"]).competition_desc.unique())
-season_opts = sorted(list(df_team.season.unique()))
+df_filtrado = df_team[(df_team.country_id.isin(["ESP","ENG","ITA","FRA","GER"]))  & (df_team.tier_num==1)]
+comp_opts = list(df_filtrado.sort_values(by=["tier_num","country_id"]).competition_desc.unique())
+season_opts = sorted(list(df_team[df_team.actual_sn==1].season.unique()))
 
 # Inicializamos session_state con valores si no existen
 if "comps" not in st.session_state:

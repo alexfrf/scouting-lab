@@ -32,7 +32,7 @@ def init_session_state():
         "posiciones": None,
         "criterios": None,
         "number": 50,
-        "selected_min": 1000,
+        "selected_min": 500,
         "selected_age": 50,
         "selected_hei": 0,
         "select_league_style": "Personalizado"
@@ -50,10 +50,10 @@ def read_query(sql: str) -> pd.DataFrame:
 
 def filtros_sidebar(df):
     # Filtrado por países
-    df_filtrado = df[df.country_id.isin(["ESP","ENG","ITA","FRA","GER"])]
+    df_filtrado = df[(df.country_id.isin(["ESP","ENG","ITA","FRA","GER"]))  & (df.tier_num==1)]
     
     comp_opts = list(df_filtrado.sort_values(by=["tier_num","country_id"]).competition_desc.unique())
-    season_opts = sorted(list(df.season.unique()))
+    season_opts = sorted(list(df[df.actual_sn==1].season.unique()))
 
     # Inicialización session_state
     if "comps" not in st.session_state:
@@ -112,9 +112,11 @@ def get_data(filtros,cond_where=""):
     conn=get_conn()
     config=get_params()
     if len(cond_where)==0:
-        query = """select * from fact_ag_player_season where season = '2024-2025'"""
+        query = """select ss.*,ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
+                    inner join dim_season ds on ds.season=ss.season where ds.actual_sn =1 """
     else:
-        query = """select * from fact_ag_player_season where season = '2024-2025' and {}""".format(cond_where)
+        query = """select ss.*,ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
+                    inner join dim_season ds on ds.season=ss.season where ds.actual_sn =1 and {}""".format(cond_where)
     df = read_query(query)
     df=df.drop_duplicates()
     df= ub.clean_df(df)
@@ -276,7 +278,8 @@ def main():
         elif posiciones =="AMF":
             df = df[(df['position'] == posiciones) | (df['position2'] == posiciones) | (df['position3'] == posiciones) | ((df.position=="AMF") & (df.teamName==teams))]
         elif posiciones =="RW" or posiciones == "LW":
-            df = df[(df['position'] == "RW") | (df['position2'] == "LW")]
+            df = df[(df['position'] == posiciones) | (df['position2'] == posiciones) | (df['position3'] == posiciones)]
+            
         position_padre = dim_position[dim_position.position_data == posiciones].position_padre.values[0]
         df = df[df[f"cluster_{position_padre}"].notna()]
         df['cluster'] = df[f"cluster_{position_padre}"]
@@ -297,7 +300,9 @@ def main():
     if criterios in ["Adecuación", "Similitud"]:
         criterio = "adecuacion_total"
         if criterios == "Similitud":
-            player_sim_id = st.sidebar.selectbox("Selecciona Jugador", df[df.teamName == teams].playerName_id.unique(), index=0)
+            df_sim = pd.concat([df[df.teamName==teams],df])
+            df_sim=df_sim.drop_duplicates(subset=["playerName_id","season"],keep='first')
+            player_sim_id = st.sidebar.selectbox("Selecciona Jugador", df_sim.playerName_id.unique(), index=0)
             dfjug = df[df.playerName_id == player_sim_id]
             desc = "SIMILITUD: mide el grado de parecido entre dos jugadores de la misma posición."
             accr = "SIM"
@@ -327,7 +332,7 @@ def main():
     if 'minutes' in cols_disponibles:
         min_minutes = int(df['minutes'].min())
         max_minutes = int(df['minutes'].max())
-        selected_min_default = st.session_state.get("selected_min", 1000)
+        selected_min_default = st.session_state.get("selected_min", 500)
         selected_min = st.sidebar.slider("Minutos Jugados", min_minutes, max_minutes, value=selected_min_default)
         st.session_state["selected_min"] = selected_min
     
