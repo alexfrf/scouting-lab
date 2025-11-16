@@ -458,7 +458,7 @@ def calcula_similitud(df_jugadores_pos, df_cols, position):
 
 
 
-def calcula_similitud_jugador(df_jugadores_pos, df_cols, position, player_id_objetivo, season_objetivo):
+def calcula_similitud_jugador(df_jugadores_pos, df_cols, position, player_id_objetivo):
     """
     Calcula la similitud de un jugador específico en una temporada específica frente al resto de jugadores
     de su misma posición y temporada.
@@ -475,7 +475,7 @@ def calcula_similitud_jugador(df_jugadores_pos, df_cols, position, player_id_obj
     """
 
     # Filtrar solo jugadores de la temporada objetivo
-    df_filtrado = df_jugadores_pos[df_jugadores_pos['season'] == season_objetivo].copy()
+    df_filtrado = df_jugadores_pos.copy()
 
     # Medidas de perfil
     medidas = list(df_cols['medida'].unique())
@@ -485,16 +485,14 @@ def calcula_similitud_jugador(df_jugadores_pos, df_cols, position, player_id_obj
     df_filtrado[medidas] = scaler.fit_transform(df_filtrado[medidas])
 
     # Construcción de perfiles
-    perfiles = df_filtrado.set_index('playerId')[medidas]
+    perfiles = df_filtrado.set_index('playerName_id')[medidas]
     player_ids = perfiles.index.tolist()
 
-    # Comprobación de existencia del jugador objetivo
-    if player_id_objetivo not in player_ids:
-        raise ValueError(f"El jugador {player_id_objetivo} no está en la temporada {season_objetivo}.")
+    
 
     # Diccionarios auxiliares
-    seasons = df_filtrado.set_index('playerId')['season']
-    player_names = df_filtrado.set_index('playerId')['playerName']
+    seasons = df_filtrado.set_index('playerName_id')['season']
+    player_names = df_filtrado.set_index('playerName_id')['playerName']
 
     # Perfil del jugador objetivo
     perfil_objetivo = perfiles.loc[player_id_objetivo].values.reshape(1, -1)
@@ -512,7 +510,7 @@ def calcula_similitud_jugador(df_jugadores_pos, df_cols, position, player_id_obj
 
     # Construir DataFrame de salida con todos los jugadores
     df_resultado = pd.DataFrame({
-        'playerId': perfiles.index,
+        'playerName_id': perfiles.index,
         'playerName': [player_names.loc[pid] for pid in perfiles.index],
         'season': [seasons.loc[pid] for pid in perfiles.index],
         'adecuacion_total': np.round(similitudes, 2),
@@ -520,7 +518,7 @@ def calcula_similitud_jugador(df_jugadores_pos, df_cols, position, player_id_obj
     })
 
     # Eliminar al jugador objetivo del resultado
-    df_resultado = df_resultado[df_resultado['playerId'] != player_id_objetivo].reset_index(drop=True)
+    df_resultado = df_resultado[df_resultado['playerName_id'] != player_id_objetivo].reset_index(drop=True)
 
     return df_resultado
 

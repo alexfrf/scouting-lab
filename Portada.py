@@ -252,7 +252,9 @@ st.markdown("""
 st.image(image_mini, width=140)
 
 if seasons:
+    df_old = df_team[df_team['anterior_sn']==1]
     df_team = df_team[df_team['season']==seasons]
+    
     if teams:
         
         teamid = df_team[(df_team.teamName==teams) & (df_team.season==seasons)].teamId.values[0]
@@ -278,54 +280,81 @@ meto=Image.open("Documentación/metodologia.png")
 col2.image(meto)
 st.divider()
 df_own = df_team[(df_team.teamName==teams) & (df_team.season==seasons)]
+df_old = df_old[(df_old.teamId==teamid)]
 col_logo, col_title = st.columns([0.05, 0.95])
 with col_logo:
     st.image(logo, width=60)  # Ajusta el tamaño del logo
 col_title.markdown("### {} | Modelo de Juego for Fases".format(teams))
+
 kpi1,kpi2,kpi3,kpi4=st.columns([.25,.25,.25,.25])
 with kpi1:
     st.markdown("""
     <div style="padding: 10px; border: 1px solid #ccc; border-radius: 10px; background-color: #f9f9f9; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
         <h4 style="margin-bottom:5px;">Estructura</h4>
-        <h6>{}</h6>
+        <h6>{}</h6></h4>
+        ({} - {})
     </div>
     """.format(dim_modelo_categoria[
         (dim_modelo_categoria.cluster == df_own.cluster_ESTRUCTURA.values[0]) & 
         (dim_modelo_categoria.categoria_id == 5)
-    ].modelo_desc.values[0]), unsafe_allow_html=True)
+    ].modelo_desc.values[0],
+                df_old.season.values[0],
+                dim_modelo_categoria[
+                    (dim_modelo_categoria.cluster == df_old.cluster_ESTRUCTURA.values[0]) & 
+                    (dim_modelo_categoria.categoria_id == 5)
+                ].modelo_desc.values[0]
+                ), unsafe_allow_html=True)
 
 with kpi2:
     st.markdown("""
     <div style="padding: 10px; border: 1px solid #ccc; border-radius: 10px; background-color: #f9f9f9; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
         <h4 style="margin-bottom:5px;">Defensa</h4>
-        <h6>{}</h6>
+        <h6>{}</h6></h4>
+        ({} - {})
     </div>
     """.format(dim_modelo_categoria[
         (dim_modelo_categoria.cluster == df_own.cluster_DEFENSA.values[0]) & 
         (dim_modelo_categoria.categoria_id == 1)
-    ].modelo_desc.values[0]), unsafe_allow_html=True)
+    ].modelo_desc.values[0],
+                df_old.season.values[0],
+                dim_modelo_categoria[
+                    (dim_modelo_categoria.cluster == df_old.cluster_DEFENSA.values[0]) & 
+                    (dim_modelo_categoria.categoria_id == 1)
+                ].modelo_desc.values[0]), unsafe_allow_html=True)
 
 with kpi3:
     st.markdown("""
     <div style="padding: 10px; border: 1px solid #ccc; border-radius: 10px; background-color: #f9f9f9; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
         <h4 style="margin-bottom:5px;">Construcción</h4>
-        <h6>{}</h6>
+        <h6>{}</h6></h4>
+        ({} - {})
     </div>
     """.format(dim_modelo_categoria[
         (dim_modelo_categoria.cluster == df_own.cluster_CONSTRUCCION.values[0]) & 
         (dim_modelo_categoria.categoria_id == 2)
-    ].modelo_desc.values[0]), unsafe_allow_html=True)
+    ].modelo_desc.values[0],
+                df_old.season.values[0],
+                dim_modelo_categoria[
+                    (dim_modelo_categoria.cluster == df_old.cluster_CONSTRUCCION.values[0]) & 
+                    (dim_modelo_categoria.categoria_id == 2)
+                ].modelo_desc.values[0]), unsafe_allow_html=True)
 
 with kpi4:
     st.markdown("""
     <div style="padding: 10px; border: 1px solid #ccc; border-radius: 10px; background-color: #f9f9f9; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
         <h4 style="margin-bottom:5px;">Ataque</h4>
-        <h6>{}</h6>
+        <h6>{}</h6></h4>
+        ({} - {})
     </div>
     """.format(dim_modelo_categoria[
         (dim_modelo_categoria.cluster == df_own.cluster_ATAQUE.values[0]) & 
         (dim_modelo_categoria.categoria_id == 3)
-    ].modelo_desc.values[0]), unsafe_allow_html=True)
+    ].modelo_desc.values[0],
+                df_old.season.values[0],
+                dim_modelo_categoria[
+                    (dim_modelo_categoria.cluster == df_old.cluster_ATAQUE.values[0]) & 
+                    (dim_modelo_categoria.categoria_id == 3)
+                ].modelo_desc.values[0]), unsafe_allow_html=True)
 help_uni="UNICIDAD: nº y % de equipos de la misma liga que comparten modelo de juego -general o por fase-"
 help_tot="UNICIDAD: nº y % de equipos de las 5 Grandes Ligas que comparten modelo de juego"
 kpi1.write("")
@@ -349,6 +378,7 @@ kpi4.metric("**Unicidad - ATAQUE**".format(comps.upper()), "{:.0%}".format(df_te
 kpi1.write("")
 st.divider()
 kpi1,kpi2,kpi3,kpi4=st.columns([.25,.25,.25,.25])
+
 kpi1.metric("**UNICIDAD DEL MODELO - {}**".format(comps.upper()), "{:.0%}".format(df_team[(df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition_desc==comps)].shape[0] / df_team[(df_team.competition_desc==comps)].shape[0]),
           "= que {:.0f} Equipo(s) en {}".format(df_team[(df_team.modelo_id==df_own.modelo_id.values[0]) & (df_team.competition_desc==comps)].shape[0]-1,comps.upper()),
           border=True, delta_color="off",help=help_uni.replace(" -general o por fase-","").strip())

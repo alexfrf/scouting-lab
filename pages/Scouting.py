@@ -216,6 +216,7 @@ def main():
     with st.spinner("Cargando datos..."):
         
         df,df_prot,df_time,df_cols,dim_position,dim_rol,dim_medida_player,dim_modelo_categoria,dim_prototipo,dim_team = get_data(config['filtros_data'])
+        
         df=df.drop_duplicates()
         df=gestion_jugdup(df)
 
@@ -300,10 +301,27 @@ def main():
     if criterios in ["Adecuación", "Similitud"]:
         criterio = "adecuacion_total"
         if criterios == "Similitud":
-            df_sim = pd.concat([df[df.teamName==teams],df])
+            if len(list(df[df.teamName==teams].playerId.unique()))>1:
+                query_sim_old = """select ss.*,
+                concat(ss.playerName,' (',ss.season,')') as playerName_id,
+                ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
+                            inner join dim_season ds on ds.season=ss.season where ds.anterior_sn =1 
+                            and (ss.teamId='{}' or ss.playerId in {})
+                            """
+                df_sim_old = read_query(query_sim_old.format(teamid,tuple(list(df[df.teamName==teams].playerId.unique()))))
+            else:
+                query_sim_old = """select ss.*,
+                concat(ss.playerName,' (',ss.season,')') as playerName_id,
+                ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
+                            inner join dim_season ds on ds.season=ss.season where ds.anterior_sn =1 
+                            and (ss.teamId='{}' or ss.playerId = '{}')
+                            """
+                df_sim_old = read_query(query_sim_old.format(teamid,df[df.teamName==teams].playerId.values[0]))
+            df_sim_old = df_sim_old[df_sim_old[f"cluster_{position_padre}"].notna()]
+            df_sim = pd.concat([df[df.teamName==teams],df_sim_old,df])
             df_sim=df_sim.drop_duplicates(subset=["playerName_id","season"],keep='first')
             player_sim_id = st.sidebar.selectbox("Selecciona Jugador", df_sim.playerName_id.unique(), index=0)
-            dfjug = df[df.playerName_id == player_sim_id]
+            dfjug = df_sim[df_sim.playerName_id == player_sim_id]
             desc = "SIMILITUD: mide el grado de parecido entre dos jugadores de la misma posición."
             accr = "SIM"
             accr2=accr
@@ -405,8 +423,9 @@ def main():
             
         else:
             mod_player_ade = ipe.calcula_similitud_jugador(df, df_cols[(df_cols.position==position_padre) & (df_cols.modelo_sn==1)], 
-                                                           posiciones, sim, 
-                                                           seasons)
+                                                           posiciones, sim)
+            dfr=df.drop_duplicates(subset=['playerName_id','playerId','season'],keep='first')
+            mod_player_ade = pd.merge(mod_player_ade,dfr[['playerName_id','playerId','season']],on=["playerName_id","season"])
 
         #mod_player_ade.rename({mod_player_ade.columns[-1]:"adecuacion_total"},axis=1,inplace=True)    
         cols_fun=["playerId","season"]+cols+cols_aux
@@ -428,22 +447,22 @@ def main():
     
     def calcula_tabla_similitud(sim,orden="Similitud"):
          mod_player_ade=  ipe.calcula_similitud_jugador(df, df_cols[(df_cols.position==position_padre) & (df_cols.modelo_sn==1)], 
-                                                       position_padre, df[df.playerName_id==sim].playerId.values[0], 
-                                                       seasons)
+                                                       position_padre, df[df.playerName_id==sim].playerName_id.values[0])
 
          #mod_player_ade.rename({mod_player_ade.columns[-1]:"adecuacion_total"},axis=1,inplace=True)    
          
      
          
-         data = pd.merge(mod_player_ade[["playerId","playerName","season","{}".format("adecuacion_total")]],
-                         df[["playerId","season","position","teamName","cluster","Performance_{}".format(position_padre),
-                             "nivel_id_{}".format(position_padre)]], how="left",on=["playerId","season"])
+         data = pd.merge(mod_player_ade[["playerName_id","playerName","season","{}".format("adecuacion_total")]],
+                         df[["playerName_id","playerId","season","position","teamName","cluster","Performance_{}".format(position_padre),
+                             "nivel_id_{}".format(position_padre)]], how="left",on=["playerName_id","season"])
 
-         data = pd.merge(data,df[["img_logo","playerId","season",'logo']], 
-                        how="left",on=["playerId","season"])
+         data = pd.merge(data,df[["img_logo","playerName_id","season",'logo']], 
+                        how="left",on=["playerName_id","season"])
          
          data = pd.merge(data,roles[["rol_desc","cluster"]], 
                          how="left",on=["cluster"])
+         data =data[data.season==seasons]
          
          return data.sort_values(by=indicadores[orden],ascending=False)   
 
@@ -464,7 +483,11 @@ def main():
         else:
             jug_sim= df[df.playerName_id==player_sim_id].playerName.values[0]
             team_sim= df[df.playerName_id==player_sim_id].teamName.values[0]
-            st.subheader(f"| Top {posiciones_nombre} por {criterios.upper()} a {jug_sim} ({team_sim})")
+            if df[df.playerName_id==player_sim_id].season.values[0]==seasons:
+                st.subheader(f"| Top {posiciones_nombre} por {criterios.upper()} a {jug_sim} ({team_sim})")
+            else:
+                season_sim=df[df.playerName_id==player_sim_id].season.values[0]
+                st.subheader(f"| Top {posiciones_nombre} por {criterios.upper()} a {jug_sim} ({team_sim}) en la Temporada {season_sim}")
     #colti2.markdown("  Dispersión de {} por Rol de {}".format(criterio,position_padre))
     #tabla_adecuacion['playerName'] = tabla_adecuacion['playerName'].apply(lambda x: f'<span style="font-size:18px;">{x}</span>')
     
@@ -480,7 +503,7 @@ def main():
         columnas_tabla.append("height")
     columnas_aux=["cluster",'Performance_{}_ATAQUE'.format(position_padre)]
     if criterios=="Similitud":
-        tabla_adecuacion=calcula_tabla_adecuacion(columnas_tabla,columnas_aux,criterios, df[df.playerName_id==player_sim_id].playerId.values[0])
+        tabla_adecuacion=calcula_tabla_adecuacion(columnas_tabla,columnas_aux,criterios, df[df.playerName_id==player_sim_id].playerName_id.values[0])
     else:
         tabla_adecuacion=calcula_tabla_adecuacion(columnas_tabla,columnas_aux,criterios)
         
@@ -803,38 +826,86 @@ def main():
     col4.markdown("""### :black_circle: Dashboard Comparativo""")
     col4b, col5= st.columns([1,1]) 
     option_viz = st.radio(
-                "Selecciona Visualización Comparativa",["***Radar vs. Jugador***","***Mapa de Calor vs. Prototipos***"],horizontal =True)
+                "Selecciona Visualización Comparativa",["***Radar vs. Jugador***","***Mapa de Calor vs. Prototipos***",
+                                                        "***Radar vs. Temporada Anterior***"
+                                                        ],horizontal =True)
     col8,col9,col10 = st.columns([0.6,0.6,.8]) 
     
     df = pd.concat([df[df.playerName_id==select_pl],df])
     df = df.drop_duplicates(subset='playerId',keep='first')
     
+    
     select_pl1 = col8.selectbox(
             "Mostrar comparación de:",
             tuple(df.playerName_id.unique()))
+    
+        
     list_comparar = ["Competiciones Seleccionadas",
                      "Competición del Jugador - {}".format(df[df.teamName==tabla_adecuacion[tabla_adecuacion.playerName_id==select_pl1].teamName.values[0]].competition.values[0]),
                      "Competición del Equipo - {}".format(dim_team[dim_team.teamName==teams].competition.values[0])]
     
    
-    if "Radar" in option_viz:
-        select_pl2 = col9.selectbox(
-                "y:",
-                tuple(pd.concat([df[(df.teamName==teams) & (df.playerName!=select_pl1)],df]).drop_duplicates(subset='playerId',keep='first').playerName_id.unique()
-                      )
-                )
+    if "Radar" in option_viz :
+        if option_viz=="***Radar vs. Temporada Anterior***":
+            query_sp_old1 = """select ss.*,
+            concat(ss.playerName,' (',ss.season,')') as playerName_id,
+            ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
+                        inner join dim_season ds on ds.season=ss.season where ds.anterior_sn =1 
+                        and (ss.playerId='{}')
+                        """
+            query_sp_old2 = """select ss.*,
+            concat(ss.playerName,' (',ss.season,')') as playerName_id,
+            ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
+                        inner join dim_season ds on ds.season=ss.season where ds.anterior_sn =1 
+                        and (ss.teamId='{}')
+                        """
+            df_sp_old = pd.concat([read_query(query_sp_old1.format(df[df.playerName_id==select_pl1].playerId.values[0])),
+                                   read_query(query_sp_old2.format(teamid))]
+                                  )
+            df_sp_old = df_sp_old.drop_duplicates(subset=['playerId','season'],keep='first')
+            df_sp_old = df_sp_old[df_sp_old[f"cluster_{position_padre}"].notna()]
+            select_pl2 = col9.selectbox(
+                    "y:",
+                    tuple(df_sp_old.drop_duplicates(subset='playerName_id',keep='first').playerName_id.unique()
+                          )
+                    )
+        
+        else:
+            select_pl2 = col9.selectbox(
+                    "y:",
+                    tuple(pd.concat([df[(df.teamName==teams) & (df.playerName_id!=select_pl1)],df[(df.playerName_id!=select_pl1)]]).drop_duplicates(subset='playerId',keep='first').playerName_id.unique()
+                          )
+                    )
     col6, col7= st.columns([1.2,.8])
     df_cols_sel= df_cols[df_cols.position==position_padre]
     df_cols_sel =pd.merge(df_cols_sel[df_cols_sel.calculo_sn==1],dim_medida_player[["position","medida","acronimo"]],on=["position","medida"],how='left')
     
     if "Radar" in option_viz:
-        col6.pyplot(pp.sradar_comp(select_pl1,select_pl2,df,df_prot_comp,"Promedio_All", "Nivel Top_All",
-                       list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].medida.unique()), 
-                       position_padre,
-                       seasons,seasons,
-                  nombres=list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].fancy_name_esp.unique())
-        )
-                    )
+        if option_viz=="***Radar vs. Temporada Anterior***":
+            df=pd.concat([df_sp_old,df]).drop_duplicates(subset='playerName_id',keep='first')
+            col6.pyplot(pp.sradar_comp(select_pl1,select_pl2,df,df_prot_comp,"Promedio_All", "Nivel Top_All",
+                           list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].medida.unique()), 
+                           position_padre,
+                           seasons,df_sp_old.season.values[0],
+                      nombres=list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].fancy_name_esp.unique())
+            )
+                        )
+        elif    "20" in select_pl2:
+            col6.pyplot(pp.sradar_comp(select_pl1,select_pl2,df,df_prot_comp,"Promedio_All", "Nivel Top_All",
+                           list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].medida.unique()), 
+                           position_padre,
+                           seasons,df[df.playerName_id==select_pl2].season.values[0],
+                      nombres=list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].fancy_name_esp.unique())
+            )
+                        )
+        else:
+            col6.pyplot(pp.sradar_comp(select_pl1,select_pl2,df,df_prot_comp,"Promedio_All", "Nivel Top_All",
+                               list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].medida.unique()), 
+                               position_padre,
+                               seasons,seasons,
+                          nombres=list(df_cols[(df_cols.position==position_padre) & (df_cols.calculo_sn==1)].fancy_name_esp.unique())
+                )
+                            )
     else:
         ligas_comp=col9.selectbox("Selecciona competición a comparar",list_comparar[1:])
         prototipos= config['seleccion_prototipos']
@@ -961,8 +1032,10 @@ def main():
     
         
         df_filtrado = df[
+            (
         (df['playerId'].isin(tabla_adecuacion.head(select_num)['playerId'].unique())) |
         (df['teamName'] == teams)
+            ) & (df.season==seasons)
         ]
         
         # Obtener nombres de columna interna (medida) a partir del nombre visible
