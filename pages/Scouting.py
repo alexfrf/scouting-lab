@@ -16,6 +16,7 @@ from PIL import Image
 from sqlalchemy import create_engine, text
 
 
+
 @st.cache_resource
 def get_conn():
     con = ub.get_conn()
@@ -47,19 +48,28 @@ def read_query(sql: str) -> pd.DataFrame:
         result = conn.execute(text(sql))  # text() convierte el SQL en objeto SQLAlchemy
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
     return df
-
+st.set_page_config(layout="wide", page_title="ScoutingLAB")
+st.sidebar.title("🏁 Scouting")
+season_opts = ['2025-2026','2024-2025']
+# Select temporada
+selected_season = st.sidebar.selectbox(
+    "Selecciona Temporada",
+    season_opts,
+    index=season_opts.index(st.session_state.seasons)
+)
 def filtros_sidebar(df):
     # Filtrado por países
-    df_filtrado = df[(df.country_id.isin(["ESP","ENG","ITA","FRA","GER"]))  & (df.tier_num==1)]
+    
+    df_filtrado = df[(df.country_id.isin(["ESP","ENG"]))  & (df.tier_num<=2)]
     
     comp_opts = list(df_filtrado.sort_values(by=["tier_num","country_id"]).competition_desc.unique())
-    season_opts = sorted(list(df[df.actual_sn==1].season.unique()))
+    
 
     # Inicialización session_state
     if "comps" not in st.session_state:
         st.session_state.comps = comp_opts[0]
     if "seasons" not in st.session_state:
-        st.session_state.seasons = season_opts[-1]
+        st.session_state.seasons = season_opts[0]
     if "teams" not in st.session_state:
         st.session_state.teams = None
 
@@ -73,12 +83,7 @@ def filtros_sidebar(df):
         st.session_state.comps = selected_comp
         st.session_state.teams = None  # reinicia equipo
 
-    # Select temporada
-    selected_season = st.sidebar.selectbox(
-        "Selecciona Temporada",
-        season_opts,
-        index=season_opts.index(st.session_state.seasons)
-    )
+   
     if selected_season != st.session_state.seasons:
         st.session_state.seasons = selected_season
         st.session_state.teams = None  # reinicia equipo
@@ -108,12 +113,12 @@ def filtros_sidebar(df):
 # 📡 Conexión a MySQL
 # -----------------------------
 @st.cache_data(ttl=86400)  # 86400 segundos = 24 horas
-def get_data(filtros,cond_where=""):
+def get_data(filtros,ss,cond_where=""):
     conn=get_conn()
     config=get_params()
     if len(cond_where)==0:
         query = """select ss.*,ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
-                    inner join dim_season ds on ds.season=ss.season where ds.actual_sn =1 """
+                    inner join dim_season ds on ds.season=ss.season where ds.season='{}' """.format(ss)
     else:
         query = """select ss.*,ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
                     inner join dim_season ds on ds.season=ss.season where ds.actual_sn =1 and {}""".format(cond_where)
@@ -168,8 +173,8 @@ def main():
     init_session_state()
     config=get_params()
     
-    st.set_page_config(layout="wide", page_title="ScoutingLAB")
-    st.sidebar.title("🏁 Scouting")
+    #st.set_page_config(layout="wide", page_title="ScoutingLAB")
+    #st.sidebar.title("🏁 Scouting")
     st.markdown("""
     <style>
         body {
@@ -215,7 +220,7 @@ def main():
     
     with st.spinner("Cargando datos..."):
         
-        df,df_prot,df_time,df_cols,dim_position,dim_rol,dim_medida_player,dim_modelo_categoria,dim_prototipo,dim_team = get_data(config['filtros_data'])
+        df,df_prot,df_time,df_cols,dim_position,dim_rol,dim_medida_player,dim_modelo_categoria,dim_prototipo,dim_team = get_data(config['filtros_data'],selected_season)
         
         df=df.drop_duplicates()
         df=gestion_jugdup(df)
@@ -301,23 +306,44 @@ def main():
     if criterios in ["Adecuación", "Similitud"]:
         criterio = "adecuacion_total"
         if criterios == "Similitud":
-            if len(list(df[df.teamName==teams].playerId.unique()))>1:
-                query_sim_old = """select ss.*,
-                concat(ss.playerName,' (',ss.season,')') as playerName_id,
-                ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
-                            inner join dim_season ds on ds.season=ss.season where ds.anterior_sn =1 
-                            and (ss.teamId='{}' or ss.playerId in {})
-                            """
-                df_sim_old = read_query(query_sim_old.format(teamid,tuple(list(df[df.teamName==teams].playerId.unique()))))
+            if df[df.actual_sn==1].season.shape[0]>0:
+                if len(list(df[df.teamName==teams].playerId.unique()))>1:
+                    query_sim_old = """select ss.*,
+                    concat(ss.playerName,' (',ss.season,')') as playerName_id,
+                    ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
+                                inner join dim_season ds on ds.season=ss.season where ds.anterior_sn =1 
+                                and (ss.teamId='{}' or ss.playerId in {})
+                                """
+                    df_sim_old = read_query(query_sim_old.format(teamid,tuple(list(df[df.teamName==teams].playerId.unique()))))
+                else:
+                    query_sim_old = """select ss.*,
+                    concat(ss.playerName,' (',ss.season,')') as playerName_id,
+                    ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
+                                inner join dim_season ds on ds.season=ss.season where ds.anterior_sn =1 
+                                and (ss.teamId='{}' or ss.playerId = '{}')
+                                """
+                    df_sim_old = read_query(query_sim_old.format(teamid,df[df.teamName==teams].playerId.values[0]))
+                df_sim_old = df_sim_old[df_sim_old[f"cluster_{position_padre}"].notna()]
+            elif  df[df.anterior_sn==1].season.shape[0]>0:
+                if len(list(df[df.teamName==teams].playerId.unique()))>1:
+                    query_sim_old = """select ss.*,
+                    concat(ss.playerName,' (',ss.season,')') as playerName_id,
+                    ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
+                                inner join dim_season ds on ds.season=ss.season where ds.actual_sn =1 
+                                and (ss.teamId='{}' or ss.playerId in {})
+                                """
+                    df_sim_old = read_query(query_sim_old.format(teamid,tuple(list(df[df.teamName==teams].playerId.unique()))))
+                else:
+                    query_sim_old = """select ss.*,
+                    concat(ss.playerName,' (',ss.season,')') as playerName_id,
+                    ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
+                                inner join dim_season ds on ds.season=ss.season where ds.actual_sn =1 
+                                and (ss.teamId='{}' or ss.playerId = '{}')
+                                """
+                    df_sim_old = read_query(query_sim_old.format(teamid,df[df.teamName==teams].playerId.values[0]))
+                df_sim_old = df_sim_old[df_sim_old[f"cluster_{position_padre}"].notna()]
             else:
-                query_sim_old = """select ss.*,
-                concat(ss.playerName,' (',ss.season,')') as playerName_id,
-                ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
-                            inner join dim_season ds on ds.season=ss.season where ds.anterior_sn =1 
-                            and (ss.teamId='{}' or ss.playerId = '{}')
-                            """
-                df_sim_old = read_query(query_sim_old.format(teamid,df[df.teamName==teams].playerId.values[0]))
-            df_sim_old = df_sim_old[df_sim_old[f"cluster_{position_padre}"].notna()]
+                df_sim_old=pd.DataFrame()
             df_sim = pd.concat([df[df.teamName==teams],df_sim_old,df])
             df_sim=df_sim.drop_duplicates(subset=["playerName_id","season"],keep='first')
             player_sim_id = st.sidebar.selectbox("Selecciona Jugador", df_sim.playerName_id.unique(), index=0)
@@ -518,6 +544,7 @@ def main():
                 tabla_adecuacion = tabla_adecuacion[(tabla_adecuacion['height']>=selected_hei) | 
                                                     (tabla_adecuacion.height==0) | 
                                                     (tabla_adecuacion.height.isna()==True)]
+    tabla_adecuacion = pd.concat([tabla_adecuacion,df_own])
     df = pd.merge(df,roles[["rol_desc","cluster"]], 
                     how="left",on=["cluster"]
                     )

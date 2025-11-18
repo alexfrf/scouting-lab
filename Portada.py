@@ -148,16 +148,16 @@ df_team,df_cols_team,dim_medida_team,dim_modelo_categoria= get_data()
 # Sidebar
 st.sidebar.title("🏁 Portada")
 st.sidebar.subheader("Filtros")
-df_filtrado = df_team[(df_team.country_id.isin(["ESP","ENG","ITA","FRA","GER"]))  & (df_team.tier_num==1)]
+df_filtrado  = df_team[(df_team.country_id.isin(["ESP","ENG"]))  & (df_team.tier_num<=2)]
 comp_opts = list(df_filtrado.sort_values(by=["tier_num","country_id"]).competition_desc.unique())
-season_opts = sorted(list(df_team[df_team.actual_sn==1].season.unique()))
+season_opts = sorted(list(df_team.sort_values(by="season",ascending=False).season.unique()))
 
 # Inicializamos session_state con valores si no existen
 if "comps" not in st.session_state:
     st.session_state["comps"] = comp_opts[0]
 
 if "seasons" not in st.session_state:
-    st.session_state["seasons"] = season_opts[-1]
+    st.session_state["seasons"] = season_opts[0]
 
 # Esta función recalcula la lista de equipos validos
 def get_team_options():
