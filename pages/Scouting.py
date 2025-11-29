@@ -50,7 +50,7 @@ def read_query(sql: str) -> pd.DataFrame:
     return df
 st.set_page_config(layout="wide", page_title="ScoutingLAB")
 st.sidebar.title("🏁 Scouting")
-season_opts = ['2025-2026','2024-2025']
+season_opts = ['2025-2026']
 # Select temporada
 selected_season = st.sidebar.selectbox(
     "Selecciona Temporada",
@@ -118,12 +118,14 @@ def get_data(filtros,ss,cond_where=""):
     config=get_params()
     if len(cond_where)==0:
         query = """select ss.*,ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
-                    inner join dim_season ds on ds.season=ss.season where ds.season='{}' """.format(ss)
+                    inner join dim_season ds on ds.season=ss.season where ds.actual_sn =1 or ds.anterior_sn=1 """.format(ss)
     else:
         query = """select ss.*,ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
                     inner join dim_season ds on ds.season=ss.season where ds.actual_sn =1 and {}""".format(cond_where)
     df = read_query(query)
+    df=df.sort_values(by="season",ascending=False)
     df=df.drop_duplicates()
+    df=df.drop_duplicates(subset="playerId",keep='first')
     df= ub.clean_df(df)
     df_prot = read_query("""select * from fact_ag_player_extra""")
     df_prot=df_prot.drop_duplicates()
@@ -1065,6 +1067,8 @@ def main():
             ) & (df.season==seasons)
         ]
         
+        
+        
         # Obtener nombres de columna interna (medida) a partir del nombre visible
         x_col = df_cols[df_cols['fancy_name_esp'] == selectcol[0]]['medida'].values[0]
         y_col = df_cols[df_cols['fancy_name_esp'] == selectcol[1]]['medida'].values[0]
@@ -1084,7 +1088,7 @@ def main():
             idx_sp = df_filtrado[df_filtrado.playerName_id == select_pl].index.values[0]
         else:
             idx_sp = None
-            
+        
         try:
             c7.plotly_chart(pp.boxplot_xaxisv2_plotly(df_filtrado,
                 idx_sp,

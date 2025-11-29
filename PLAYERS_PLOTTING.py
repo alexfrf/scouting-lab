@@ -193,7 +193,7 @@ def scatter_xaxisv1(df,select_pl,col,cluster_col,criterio):
         ax.axvline(p[col].mean(),0,color=color,alpha=.9,linestyle='--',linewidth=1.5)
         if p2.shape[0]>0:
             plt.scatter(p2[col],[r] * p2.shape[0], 
-                    s=500,c="lime",alpha=1,edgecolors="black",marker='X',label='{}'.format(p2.playerName.values[0]))
+                    s=500,c=color,alpha=1,edgecolors="black",marker='X',label='{}'.format(p2.playerName.values[0]))
         #plt.scatter(x[0], y[0], s=sizes[0],marker='X')
         #ax.gca().invert_xaxis()
     # Customize the plot (optional)
@@ -258,7 +258,7 @@ def scatter_xaxisv1_plotly(df, select_pl, col, cluster_col, orden, position_padr
                 x=select_row[col],
                 y=[y_val],
                 mode='markers',
-                marker=dict(size=25, color='lime', symbol='x', line=dict(color='black', width=1)),
+                marker=dict(size=25, color=color, symbol='x', line=dict(color='black', width=1)),
                 hovertext=select_row['playerName'].values,
                 hoverinfo='text',
                 name=f'{select_row["playerName"].values[0]}'
@@ -336,7 +336,7 @@ def boxplot_xaxisv1_plotly(df, select_pl, col, cluster_col, orden, team,posicion
                         x=[f'{legend[i]}'],
                         y=select_row[col],
                         mode='markers+text',
-                        marker=dict(size=14, color='lime', symbol='x', line=dict(color='black', width=1)),
+                        marker=dict(size=14, color=color, symbol='x', line=dict(color='black', width=1)),
                         text=select_row['playerName'].values,
                         textposition="top center",
                         name=f'{select_row["playerName"].values[0]}',
@@ -429,7 +429,7 @@ def boxplot_xaxisv2_plotly(df, select_pl, col, cluster_col, orden, team, yaxis_t
                 x=[str(legend[i])],
                 y=select_row[col],
                 mode='markers+text',
-                marker=dict(size=14, color='lime', symbol='x', line=dict(color='black', width=1)),
+                marker=dict(size=14, color=color, symbol='x', line=dict(color='black', width=1)),
                 text=select_row['playerName'].values,
                 textposition="top center",
                 name=str(select_row['playerName'].values[0]),
@@ -1323,7 +1323,7 @@ def scatterplot_plotly(df, select_pl, df_cols, x_metric, y_metric, how, orden, t
     else:
         colores = ['coral', 'yellow', 'lightgreen', 'forestgreen']
         tit = "Prototipo"
-        roles = ['Bajo', "Promedio", "Alto", "Top"]
+        roles = ['Bajo', "Medio", "Alto", "Top"]
         legend = {r: r for r in roles}
 
     # Detectar si son porcentajes (más robusto)
@@ -1367,7 +1367,7 @@ def scatterplot_plotly(df, select_pl, df_cols, x_metric, y_metric, how, orden, t
         ))
 
         # Etiquetas visibles para jugadores del equipo (solo texto, sin hover)
-        df_equipo = df_rol[df_rol['teamName'] == teams]
+        df_equipo = df_rol[(df_rol['teamName'] == teams) & (df_rol.playerName_id!=select_pl)]
         if not df_equipo.empty:
             fig.add_trace(go.Scatter(
                 x=df_equipo[x_metric],
@@ -1382,12 +1382,13 @@ def scatterplot_plotly(df, select_pl, df_cols, x_metric, y_metric, how, orden, t
 
         # Jugador seleccionado (resaltado) — muestra hover con su nombre
         df_sel = df_rol[df_rol['playerName_id'] == select_pl]
+
         if not df_sel.empty:
             fig.add_trace(go.Scatter(
                 x=df_sel[x_metric],
                 y=df_sel[y_metric],
                 mode='markers+text',
-                marker=dict(size=16, color='lime', symbol='x', line=dict(width=1, color='black')),
+                marker=dict(size=16, color=color, symbol='x', line=dict(width=1, color='black')),
                 text=df_sel['playerName'],
                 textposition='top center',
                 textfont=dict(size=14, color='black', weight='bold'),

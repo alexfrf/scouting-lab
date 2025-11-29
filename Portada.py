@@ -150,7 +150,7 @@ st.sidebar.title("🏁 Portada")
 st.sidebar.subheader("Filtros")
 df_filtrado  = df_team[(df_team.country_id.isin(["ESP","ENG"]))  & (df_team.tier_num<=2)]
 comp_opts = list(df_filtrado.sort_values(by=["tier_num","country_id"]).competition_desc.unique())
-season_opts = list(df_team.sort_values(by="season",ascending=False).season.unique())
+season_opts = list(df_team[df_team.actual_sn==1].sort_values(by="season",ascending=False).season.unique())
 
 # Inicializamos session_state con valores si no existen
 if "comps" not in st.session_state:
