@@ -118,7 +118,7 @@ def get_data(filtros,ss,cond_where=""):
     config=get_params()
     if len(cond_where)==0:
         query = """select ss.*,ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
-                    inner join dim_season ds on ds.season=ss.season where ds.actual_sn =1 or ds.anterior_sn=1 """.format(ss)
+                    inner join dim_season ds on ds.season=ss.season where ds.actual_sn =1""".format(ss)
     else:
         query = """select ss.*,ds.actual_sn,ds.anterior_sn,ds.anterior2_sn from fact_ag_player_season ss
                     inner join dim_season ds on ds.season=ss.season where ds.actual_sn =1 and {}""".format(cond_where)
@@ -224,7 +224,7 @@ def main():
         
         df,df_prot,df_time,df_cols,dim_position,dim_rol,dim_medida_player,dim_modelo_categoria,dim_prototipo,dim_team = get_data(config['filtros_data'],selected_season)
         
-        df=df.drop_duplicates()
+        #df=df.drop_duplicates()
         df=gestion_jugdup(df)
 
     # -----------------------------
@@ -267,7 +267,7 @@ def main():
     
     # Filtro por temporada y equipo
     if seasons:
-        df = df[df['season'] == seasons]
+        #df = df[df['season'] == seasons]
         if teams:
             teamid = df[(df.teamName == teams) & (df.season == seasons)].teamId.values[0]
             modelo_juego = df[df.teamId == teamid].team_modelo_id.values[0]
